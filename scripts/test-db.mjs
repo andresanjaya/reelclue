@@ -35,7 +35,16 @@ try {
     console.log(`PASS migration ${file}`);
   }
   console.log(sql(readFileSync("tests/integration/fixtures.sql", "utf8")));
-  sql(readFileSync("tests/integration/database.sql", "utf8"));
+  const prepared = spawnSync(process.execPath, ["--experimental-strip-types", "--conditions=react-server", "--input-type=module", "-e",
+    'import {prepareCatalog} from "./src/lib/server/catalog/sync.ts"; import {createFakeMovieProvider} from "./src/lib/server/tmdb/fake.ts"; console.log(JSON.stringify(await prepareCatalog(createFakeMovieProvider(),"2026-11-04")));'],
+    { encoding: "utf8", timeout: 15000 });
+  if (prepared.status !== 0) throw new Error("Fake-provider integration preparation failed.");
+  const fixture = JSON.parse(prepared.stdout);
+  const literal = value => `'${JSON.stringify(value).replaceAll("'", "''")}'::jsonb`;
+  sql(readFileSync("tests/integration/database.sql", "utf8") +
+    `\ncreate temporary table prepared_fixture as select ${literal(fixture.rows)} as rows, ${literal(fixture.report)} as report;\n` +
+    readFileSync("tests/integration/catalog.sql", "utf8"));
+  console.log("PASS catalog staging rollback, activation gates/atomic swap and RPC denial");
   console.log("PASS isolated PostgreSQL constraints, role/RLS/RPC denial, coverage and retention");
 } catch (error) {
   console.error(error.message);

@@ -16,7 +16,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:db": "node scripts/test-db.mjs",
-    "db:purge": "node --experimental-strip-types --conditions=react-server --env-file-if-exists=.env.local scripts/purge-expired.ts"
+    "db:purge": "node --experimental-strip-types --conditions=react-server --env-file-if-exists=.env.local scripts/purge-expired.ts",
+    "catalog:sync": "node --experimental-strip-types --conditions=react-server --env-file-if-exists=.env.local scripts/catalog-sync.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.118.0",
@@ -26,6 +27,7 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "server-only": "0.0.1",
+    "sharp": "0.35.5",
     "tailwind-merge": "3.7.0",
     "zod": "4.6.7"
   },

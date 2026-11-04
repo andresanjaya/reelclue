@@ -1,14 +1,21 @@
 import "server-only";
 import { setTimeout as sleep } from "node:timers/promises";
 import { z } from "zod";
-import { parseTmdbEnv } from "./config";
-import { discoverInput, schemas, type DiscoverInput } from "./schemas";
+import { parseTmdbEnv } from "./config.ts";
+import { discoverInput, schemas, type DiscoverInput } from "./schemas.ts";
 
 export class TmdbError extends Error {
-  constructor(readonly code: "configuration" | "input" | "http" | "network" | "timeout" | "payload", readonly retryable: boolean,
-    readonly status?: number, readonly retryAfterMs?: number) {
+  readonly code: "configuration" | "input" | "http" | "network" | "timeout" | "payload";
+  readonly retryable: boolean;
+  readonly status?: number;
+  readonly retryAfterMs?: number;
+  constructor(code: TmdbError["code"], retryable: boolean, status?: number, retryAfterMs?: number) {
     super(code === "configuration" ? "Invalid TMDB configuration: set server-only TMDB_READ_ACCESS_TOKEN or optional TMDB_API_KEY; use https://api.themoviedb.org/3." : `TMDB request failed (${code}).`);
     this.name = "TmdbError";
+    this.code = code;
+    this.retryable = retryable;
+    this.status = status;
+    this.retryAfterMs = retryAfterMs;
   }
 }
 
