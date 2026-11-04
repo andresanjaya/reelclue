@@ -64,6 +64,24 @@ export type CompletedRoundSummary = {
   reveal: TerminalReveal;
 };
 
+export type GuessOutcome = "correct" | "wrong" | "ambiguous";
+
+export type AmbiguousChoice = {
+  choiceHandle: string;
+  title: string;
+  releaseYear: number;
+};
+
+export type GuessResponseDto = {
+  outcome: GuessOutcome;
+  is_duplicate: boolean;
+  points: number;
+  wrong_attempts: number;
+  message?: string;
+  choices?: AmbiguousChoice[];
+  session: SafeSessionDto;
+};
+
 export type SafeSessionDto = {
   id: string;
   mode: string;

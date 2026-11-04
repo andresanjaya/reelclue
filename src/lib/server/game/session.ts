@@ -4,8 +4,10 @@ import { createDbClient } from "../db/client.ts";
 import {
   serializeGameSession,
   serializeTerminalReveal,
+  type AmbiguousChoice,
   type DbRound,
   type DbSession,
+  type GuessResponseDto,
   type SafeSessionDto,
 } from "./dto.ts";
 import {
@@ -16,6 +18,8 @@ import {
   type SessionMode,
 } from "./selection.ts";
 import type { MovieDetails } from "./clues.ts";
+import { normalizeTitle, validateGuessInput } from "../../game-rules/normalization.ts";
+import { decodeChoiceHandle, encodeChoiceHandle } from "./choiceHandle.ts";
 
 export const PLAYER_COOKIE_NAME = "reelclue_player";
 
@@ -363,4 +367,162 @@ export async function mutateGameAction(opts: {
   });
 
   return updatedSession;
+}
+
+export async function submitGameGuess(opts: {
+  playerToken: string;
+  sessionId: string;
+  actionId: string;
+  roundId: string;
+  revision: number;
+  answerText?: string;
+  choiceHandle?: string;
+}): Promise<GuessResponseDto> {
+  const db = createDbClient();
+  const playerTokenHash = hashToken(opts.playerToken);
+
+  // 1. Input validation
+  const hasText = typeof opts.answerText === "string";
+  const hasChoice = typeof opts.choiceHandle === "string";
+
+  if (hasText === hasChoice) {
+    throw new GameError(400, "INVALID_INPUT", "Must provide exactly one of answerText or choiceHandle");
+  }
+
+  let normalizedGuess: string | null = null;
+  let selectedMovieId: number | null = null;
+  let isAmbiguous = false;
+  let choices: AmbiguousChoice[] | undefined;
+
+  if (hasText) {
+    const check = validateGuessInput(opts.answerText);
+    if (!check.valid || !check.normalized) {
+      throw new GameError(400, "INVALID_INPUT", check.error ?? "Invalid guess input");
+    }
+    normalizedGuess = check.normalized;
+
+    // Fetch catalog_version_id for session
+    const { data: sessionData } = await db
+      .from("game_sessions")
+      .select("catalog_version_id")
+      .eq("id", opts.sessionId)
+      .maybeSingle();
+
+    if (!sessionData) {
+      throw new GameError(404, "NOT_FOUND", "Game session not found");
+    }
+
+    // Query movies in this catalog to find matches on canonical, original, or aliases
+    const { data: candidates } = await db
+      .from("movies")
+      .select("tmdb_id, title, original_title, release_year, approved_aliases")
+      .eq("catalog_version_id", sessionData.catalog_version_id);
+
+    const matches = (candidates ?? []).filter(m => {
+      if (normalizeTitle(m.title) === normalizedGuess) return true;
+      if (normalizeTitle(m.original_title) === normalizedGuess) return true;
+      const aliases = (m.approved_aliases as string[] | null) ?? [];
+      return aliases.some((a: string) => normalizeTitle(a) === normalizedGuess);
+    });
+
+    if (matches.length > 1) {
+      isAmbiguous = true;
+      choices = matches.map(m => ({
+        choiceHandle: encodeChoiceHandle(m.tmdb_id),
+        title: m.title,
+        releaseYear: m.release_year,
+      }));
+    } else if (matches.length === 1) {
+      selectedMovieId = matches[0].tmdb_id;
+    } else {
+      selectedMovieId = null;
+    }
+  } else if (hasChoice) {
+    const decodedId = decodeChoiceHandle(opts.choiceHandle!);
+    if (!decodedId) {
+      throw new GameError(400, "INVALID_CHOICE_HANDLE", "Invalid or expired choice handle");
+    }
+    selectedMovieId = decodedId;
+  }
+
+  const requestHash = hashPayload({
+    roundId: opts.roundId,
+    actionId: opts.actionId,
+    revision: opts.revision,
+    answerText: normalizedGuess ?? null,
+    choiceHandle: selectedMovieId ?? null,
+  });
+
+  // Prefetch movie details for terminal reveal snapshot
+  let revealSnapshot: Record<string, unknown> | null = null;
+  const { data: roundData } = await db
+    .from("game_rounds")
+    .select("*, movies(*)")
+    .eq("id", opts.roundId)
+    .eq("session_id", opts.sessionId)
+    .maybeSingle();
+
+  if (roundData && roundData.movies) {
+    revealSnapshot = serializeTerminalReveal(
+      roundData as DbRound,
+      roundData.movies as MovieDetails
+    );
+  }
+
+  const { data: rpcResult, error: rpcError } = await db.rpc("apply_game_guess", {
+    p_player_token_hash: playerTokenHash,
+    p_session_id: opts.sessionId,
+    p_action_id: opts.actionId,
+    p_request_hash: requestHash,
+    p_round_id: opts.roundId,
+    p_expected_revision: opts.revision,
+    p_normalized_guess: normalizedGuess,
+    p_selected_movie_id: selectedMovieId,
+    p_is_ambiguous: isAmbiguous,
+    p_reveal_snapshot: revealSnapshot,
+  });
+
+  if (rpcError) {
+    handleDbRpcError(rpcError);
+  }
+
+  const result = rpcResult as {
+    cached: boolean;
+    response_snapshot?: GuessResponseDto;
+    outcome: "correct" | "wrong" | "ambiguous";
+    is_duplicate: boolean;
+    points: number;
+    wrong_attempts: number;
+  };
+
+  if (result.cached && result.response_snapshot && Object.keys(result.response_snapshot).length > 0) {
+    return result.response_snapshot;
+  }
+
+  const updatedSession = await fetchSafeSession(opts.sessionId, playerTokenHash);
+
+  const responseDto: GuessResponseDto = {
+    outcome: result.outcome,
+    is_duplicate: result.is_duplicate,
+    points: result.points,
+    wrong_attempts: result.wrong_attempts,
+    ...(isAmbiguous
+      ? {
+          message: "More than one movie has this title. Choose the year.",
+          choices,
+        }
+      : {}),
+    session: updatedSession,
+  };
+
+  await db.rpc("record_game_action", {
+    p_session_id: opts.sessionId,
+    p_action_id: opts.actionId,
+    p_request_hash: requestHash,
+    p_action_type: "guess",
+    p_round_id: opts.roundId,
+    p_response_snapshot: responseDto,
+  });
+
+  return responseDto;
 }
