@@ -29,3 +29,10 @@ Read docs/PRD-ReelClue.md, docs/BACKLOG.md and the requested current GitHub issu
 
 ## Current state
 Documentation and backlog planning only. RC-001 requires review/merge before RC-002 starts. Board placement must be verified separately; issue existence does not establish membership in GitHub Project #7. Do not claim branch protection or hosting setup is configured unless verified.
+
+## Required UI design workflow
+- Use UI UX Pro Max for all tasks that design, implement, review or refine ReelClue UI. Setup belongs to RC-002; follow docs/UI-SKILL-SETUP.md and read .opencode/skills/ui-ux-pro-max/SKILL.md after installation.
+- In RC-003, create and review design-system/reelclue/MASTER.md, then map it into one Tailwind/shadcn semantic token system. Subsequent UI tickets read the approved Master and relevant page override.
+- Use focused Next.js/shadcn/Tailwind guidance as appropriate, verify recommendation fit, and keep small fixes scoped. Backend-only tickets do not need visual searches.
+- Preserve existing reviewed theme decisions and installed framework versions. No automatic --force regeneration, new styling system, unrelated UI libraries or product-rule changes.
+- Every UI PR includes actual mobile/desktop and keyboard/focus/state validation; generated guidance alone is not proof of quality. The one-ticket review/merge gate remains mandatory.

@@ -1,6 +1,6 @@
 # ReelClue — Product Requirements Document
 
-Version 1.0 · 4 November 2026 · Owner: Andre Sanjaya
+Version 1.1 · 4 November 2026 · Owner: Andre Sanjaya
 
 **Tagline:** Every clue brings you closer.
 
@@ -64,6 +64,7 @@ P1 tickets are created as future backlog, but must not block the MVP launch or s
 | Language | TypeScript strict | Shared contracts for movie, clue, and session data |
 | Web framework | Next.js App Router, supported stable release at implementation time | React UI and server Route Handlers in one repository |
 | UI | Tailwind CSS + shadcn/ui + Lucide icons | Consistent responsive controls and accessible primitives |
+| UI design guidance | UI UX Pro Max for OpenCode | Required development-time workflow; setup in RC-002, approved design baseline in RC-003; not a browser dependency |
 | State | React reducer for game UI; server is authoritative | No Redux/Zustand requirement for a small game |
 | Validation | Zod | Validate env, requests, TMDB payloads, and response DTOs |
 | Database | Supabase Postgres through server-only client | Persist curated catalog and anonymous game state across serverless instances |
@@ -271,6 +272,27 @@ Suggested token baseline (verify contrast): background #10131A, surface #1A2030,
 
 Sample English copy: Start guessing; Reveal hint (−20 potential points); Skip movie (0 points); Not quite. 2 attempts left.; More than one movie has this title. Choose the year.; We couldn't load this clue. Your attempts haven't changed.; Not enough movies for this combination. Try another mode or level.
 
+### 13.1 Required design workflow — UI UX Pro Max
+
+Use UI UX Pro Max for ReelClue UI design and implementation, as requested by Andre. Official sources: https://www.uupm.cc/ and https://github.com/nextlevelbuilder/ui-ux-pro-max-skill. The detailed, reproducible installation and usage guide is `docs/UI-SKILL-SETUP.md`.
+
+**Ownership:** RC-002 verifies Node/npm and Python 3, installs/configures the OpenCode integration, records its version and checks the local search helper. RC-003 uses that integration to produce `design-system/reelclue/MASTER.md` and maps the reviewed choices into Tailwind/shadcn semantic tokens. RC-023 audits the delivered UI against this baseline. No installation or generated design output is claimed by this PRD update.
+
+**OpenCode installation:** the current official npm package is `ui-ux-pro-max-cli`, exposing the `uipro` command. The local setup sequence is:
+
+```bash
+npm install -g ui-ux-pro-max-cli
+# Run inside the ReelClue repository root.
+uipro init --ai opencode --dry-run
+uipro init --ai opencode
+```
+
+Python 3 is required for the search helper; detect the machine's working interpreter (`python3`, `python`, or Windows `py -3`). The expected OpenCode skill is `.opencode/skills/ui-ux-pro-max/SKILL.md`, with the helper in its `scripts/search.py`. Read the installed instructions and validate discovery/execution in the actual OpenCode environment. Missing prerequisites are a reported blocker, not a reason to silently install OS software.
+
+**Design deliverable:** generate a product-focused cinema-quiz recommendation, verify its relevance, then persist a candidate with an explicit project-root output directory. Use focused guidance for the actual `nextjs`, `shadcn` and `html-tailwind` stacks when relevant. Record selected colors, fonts, spacing, radii, states, effects, anti-patterns and rationale. The dark/amber direction above is the initial brief; material changes are reviewed in RC-003. Existing Master/page decisions must be read before updates and must not be blindly overwritten with `--force`.
+
+**Reuse:** subsequent UI tickets read the approved Master plus relevant `design-system/reelclue/pages/<page>.md` override, use one semantic token system, and include screenshot/interaction evidence. Small fixes use targeted guidance rather than regenerating the whole theme. Skill output is a recommendation, not verified accessibility compliance and not authorization to change the stack, gameplay rules, dependencies or review gate.
+
 ## 14. Results and local statistics
 
 Results show score/max for selected level, correct/10, accuracy, hints, mode, level, and 10 round outcomes. Accuracy is correct rounds /10, independent of attempts. No claim that a high score certifies film expertise. Reveal poster/title/year on missed rounds as discovery value. Primary CTA Play again; secondary Change settings and View stats.
@@ -414,5 +436,8 @@ P0 delivery sequence: RC-001–RC-024. P1 future extensions: RC-025–RC-028. De
 - Next.js Route Handlers: https://nextjs.org/docs/app/api-reference/file-conventions/route
 - Supabase API keys: https://supabase.com/docs/guides/getting-started/api-keys
 - shadcn/ui Next.js setup: https://ui.shadcn.com/docs/installation/next
+- UI UX Pro Max website: https://www.uupm.cc/
+- UI UX Pro Max installation guide: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill#installation
+- UI UX Pro Max OpenCode template: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/main/src/ui-ux-pro-max/templates/platforms/opencode.json
 
 Requirements, scores, thresholds, product targets and architecture in this document are proposed ReelClue decisions. Only provider behavior and requirements are sourced from the linked official references.

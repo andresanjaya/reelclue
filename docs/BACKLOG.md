@@ -107,6 +107,26 @@ Create a reproducible base that subsequent features can build on.
 
 Run clean pnpm install --frozen-lockfile, lint, typecheck, test and build; inspect generated bundle and env handling.
 
+#### UI skill setup — UI UX Pro Max
+
+Source: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
+Website: https://www.uupm.cc/
+
+- Check Node/npm and Python 3 availability. Document interpreter names for Windows (py -3/python) and macOS/Linux (python3). Missing prerequisites are a reported setup blocker, not permission to change the owner's operating system.
+- Follow docs/UI-SKILL-SETUP.md: install the current official npm package ui-ux-pro-max-cli (command uipro), preview project changes, then initialize this repository with uipro init --ai opencode. Keep this as development tooling, not an application/runtime dependency.
+- Record the CLI version and generated integration paths. Confirm .opencode/skills/ui-ux-pro-max/SKILL.md and its scripts/data exist, read the installed instructions, and verify search.py --help with the detected Python interpreter.
+- Preserve existing agent rules and generated-file licensing. No design-system generation or gameplay implementation in RC-002; product UI foundations belong to RC-003.
+
+##### Additional acceptance criteria
+
+- [ ] OpenCode can discover ui-ux-pro-max in this repository; the installed Python search helper is runnable.
+- [ ] The README/runbook records reproducible install/verification commands and actual CLI version; no real credentials or machine-specific paths are committed.
+- [ ] Package identity is ui-ux-pro-max-cli; no stale uipro-cli install instruction is used.
+
+##### Additional validation
+
+Capture version/help and generated-path checks. Installation instructions are not evidence that installation was performed; report actual results or the concrete blocker.
+
 #### Review and merge gate
 
 One ticket = one branch = one PR. Branch from latest main only after dependencies are merged. Include this issue in the PR, validation evidence and manual review steps. Stop in In Review and send the PR to Andre. No self-merge or auto-merge. Do not begin the next implementation ticket until Andre reviews and this PR is merged. Mark Done only after merge. For RC-001, this planning request authorizes document preparation only.
@@ -142,6 +162,27 @@ Establish consistent controls, spacing and mobile behavior.
 #### Validation
 
 Keyboard/tab and contrast checks; phone and desktop screenshots; component interaction tests only for custom behavior.
+
+#### Required UI workflow — UI UX Pro Max
+
+Use the OpenCode installation from RC-002 and docs/UI-SKILL-SETUP.md before selecting or implementing ReelClue UI foundations.
+
+- Read the installed SKILL.md and inspect actual Next.js/Tailwind/shadcn versions.
+- Run a focused design-system query for ReelClue's mobile movie-quiz context. Review that its recommendations fit a playful cinema game; retry a narrower query once if unrelated and report unmatched output honestly.
+- Persist the reviewed baseline to design-system/reelclue/MASTER.md with explicit project-root output. Document chosen semantic colors, typography, spacing, radii, interaction states, mobile patterns, anti-patterns and rationale.
+- Use separate focused searches for the detected nextjs, shadcn and html-tailwind stacks as needed. Keep the PRD's dark/amber direction as the initial brief; substantive changes must be explained in this reviewable PR.
+- Map recommendations into one existing Tailwind/shadcn semantic token system. All later UI tickets read this Master and relevant page overrides; do not create a second styling system or force unrelated libraries/GSAP.
+
+##### Additional acceptance criteria
+
+- [ ] Skill setup is verified; relevant searches and recommendation-fit review are recorded without private data.
+- [ ] design-system/reelclue/MASTER.md contains a coherent reviewed ReelClue baseline and is included in this PR for Andre's approval.
+- [ ] UI components consume approved semantic tokens; mobile touch/keyboard, contrast, wrapping and reduced-motion checks pass.
+- [ ] Existing Master/page decisions are preserved; no --force overwrite or product-scope expansion occurs automatically.
+
+##### Additional validation
+
+Include design-system output paths and query/rationale summary, semantic-token mapping, phone/desktop screenshots, and the UI quality checklist in docs/UI-SKILL-SETUP.md. Do not present generated recommendations as tested accessibility compliance.
 
 #### Review and merge gate
 
@@ -879,6 +920,17 @@ Verify all MVP modes work together before launch preparation.
 #### Validation
 
 CI lint/typecheck/unit/integration/E2E/build plus documented manual device and calibration report.
+
+#### UI UX Pro Max consistency verification
+
+- Review the approved design-system/reelclue/MASTER.md and any page overrides against all implemented pages and modes.
+- Inspect drift in typography, spacing, token usage, states, icons and responsive behavior; use targeted skill searches only for actual unresolved UI issues.
+
+##### Additional acceptance criteria
+
+- [ ] Home, setup, every clue mode, results, stats and About follow the reviewed design system or a documented page override.
+- [ ] Custom interactive controls pass keyboard/focus/touch checks; long titles/cast/tags reflow, contrast is measured, and reduced motion is respected.
+- [ ] QA report distinguishes skill recommendations from actual automated/manual verification and identifies remaining limitations.
 
 #### Review and merge gate
 

@@ -10,6 +10,7 @@ A mobile-first movie guessing playground powered by TMDB. Guess through Poster B
 - [28 ordered issues and acceptance criteria](docs/BACKLOG.md)
 - [OpenCode starter prompt](docs/OPENCODE-START.md)
 - [Agent workflow and review rules](AGENTS.md)
+- [Required UI UX Pro Max installation and UI workflow](docs/UI-SKILL-SETUP.md)
 - [GitHub Project](https://github.com/users/andresanjaya/projects/7/views/1)
 
 Proposed stack: Next.js App Router, TypeScript, Tailwind, shadcn/ui, Supabase Postgres and server-only TMDB access. This branch contains documentation, not an implemented application.
@@ -29,3 +30,7 @@ Movie metadata and images will be sourced from [TMDB](https://www.themoviedb.org
 ## Current delivery state
 
 28 repository issues created; their membership in GitHub Project #7 is pending verification/addition. No feature implementation, automatic merge, branch-protection configuration or deployment is included in this documentation change.
+
+## UI design guidance
+
+Use [UI UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) for OpenCode UI work. RC-002 performs the documented setup; RC-003 produces the reviewed design system used by later UI tickets. See docs/UI-SKILL-SETUP.md for official commands, prerequisites and validation. This documentation change does not perform installation.
