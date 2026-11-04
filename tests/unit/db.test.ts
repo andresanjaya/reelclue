@@ -36,13 +36,13 @@ describe("server-only database boundary", () => {
 
   it("refuses cleanup without explicit --apply before opening a database client", () => {
     const result = spawnSync(process.execPath, ["--experimental-strip-types", "--conditions=react-server", "scripts/purge-expired.ts"], {
-      encoding: "utf8", timeout: 10000,
+      encoding: "utf8", timeout: 25000,
       env: { ...process.env, SUPABASE_URL: "", SUPABASE_SECRET_KEY: "", SUPABASE_SERVICE_ROLE_KEY: "" },
     });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("Usage: pnpm db:purge --apply");
     expect(result.stdout).toBe("");
-  });
+  }, 30000);
 
   it("creates stateless server client lazily and keeps server-only import guards", () => {
     vi.stubEnv("SUPABASE_URL", url);

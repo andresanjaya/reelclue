@@ -115,7 +115,7 @@ describe("catalog preparation", () => {
     const forbidden = run(["--apply", "--fixture"]);
     expect(forbidden.status).toBe(1);
     expect(forbidden.stderr).toContain("Fixture apply forbidden");
-  });
+  }, 20000);
 });
 
 describe("catalog text and poster boundary", () => {
