@@ -14,9 +14,12 @@
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:db": "node scripts/test-db.mjs",
+    "db:purge": "node --experimental-strip-types --conditions=react-server --env-file-if-exists=.env.local scripts/purge-expired.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.118.0",
     "clsx": "2.1.1",
     "lucide-react": "1.67.0",
     "next": "16.4.5",
