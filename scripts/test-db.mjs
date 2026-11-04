@@ -43,9 +43,12 @@ try {
   const literal = value => `'${JSON.stringify(value).replaceAll("'", "''")}'::jsonb`;
   sql(readFileSync("tests/integration/database.sql", "utf8") +
     `\ncreate temporary table prepared_fixture as select ${literal(fixture.rows)} as rows, ${literal(fixture.report)} as report;\n` +
-    readFileSync("tests/integration/catalog.sql", "utf8"));
+    readFileSync("tests/integration/catalog.sql", "utf8") +
+    "\n" +
+    readFileSync("tests/integration/game.sql", "utf8"));
   console.log("PASS catalog staging rollback, activation gates/atomic swap and RPC denial");
   console.log("PASS isolated PostgreSQL constraints, role/RLS/RPC denial, coverage and retention");
+  console.log("PASS game lifecycle creation, idempotency, revision checks, hint/skip/next mutations and 24h expiry");
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;

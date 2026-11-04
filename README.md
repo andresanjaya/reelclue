@@ -40,7 +40,7 @@ ESLint 9.39.5 is deprecated upstream but retained because current `eslint-plugin
 
 ## Review gate
 
-One ticket → one branch → one PR → Andre review → authorized merge. No self-merge or auto-merge. Dependencies must merge before work starts. RC-007 branches from merged RC-006; no permission to merge current work or begin RC-008.
+One ticket → one branch → one PR → Andre review → authorized merge. No self-merge or auto-merge. Dependencies must merge before work starts. RC-008 branches from merged RC-007; no permission to merge current work or begin RC-009.
 
 ## Credentials
 
@@ -52,7 +52,7 @@ Movie metadata and images will be sourced from [TMDB](https://www.themoviedb.org
 
 ## Current delivery state
 
-All 28 repository issues were verified in Project #7 on 4 November 2026. RC-001–RC-006 are merged. RC-007 adds versioned familiarity tiers, curated overrides, deterministic bands, and Andre's calibration report, pending review. `pnpm catalog:sync --dry-run --fixture` runs without secrets; real `--apply` stages and activates when coverage targets are met. No live TMDB check or owner DB change performed. `/ui-preview` remains fictional/local-only. No gameplay, automatic merge, branch protection or deployment included. See [RC-007 tiering validation](docs/RC-007-TIERING.md), [RC-006 catalog commands/validation](docs/RC-006-CATALOG.md), [RC-005 adapter validation](docs/RC-005-TMDB.md), [RC-004 database validation](docs/RC-004-DATABASE.md) and [RC-003 screenshots](docs/RC-003-VALIDATION.md).
+All 28 repository issues were verified in Project #7 on 4 November 2026. RC-001–RC-007 are merged. RC-008 adds anonymous player identity, atomic ten-round session creation, safe DTO serialization, and transactional mutation transitions (hint, skip, next), pending review. `pnpm catalog:sync --dry-run --fixture` runs without secrets; real `--apply` stages and activates when coverage targets are met. No live TMDB check or owner DB change performed. `/ui-preview` remains fictional/local-only. Guess evaluation and scoring are wired in RC-009; no automatic merge, branch protection or deployment included. See [RC-008 lifecycle validation](docs/RC-008-LIFECYCLE.md), [RC-007 tiering validation](docs/RC-007-TIERING.md), [RC-006 catalog commands/validation](docs/RC-006-CATALOG.md), [RC-005 adapter validation](docs/RC-005-TMDB.md), [RC-004 database validation](docs/RC-004-DATABASE.md) and [RC-003 screenshots](docs/RC-003-VALIDATION.md).
 
 ## UI design guidance
 
