@@ -21,8 +21,10 @@ describe("catalog preparation", () => {
     const probe = vi.fn();
     const result = await prepareCatalog(providerWithMovie(), asOf, probe);
     expect(result.rows).toHaveLength(1);
-    expect(result.report).toMatchObject({ candidates: 1, duplicates: 2, accepted: 1, providerCalls: 8,
-      posterChecks: 0, tiers: "pending_rc007", activation: "blocked_tiering", source: "fixture", releasedBefore: "2026-08-06" });
+    expect(result.report).toMatchObject({ candidates: 1, duplicates: 2, approved: 1, providerCalls: 8,
+      posterChecks: 0, tieringVersion: "tiering-v1", activation: "blocked_fixture", source: "fixture", releasedBefore: "2026-08-06" });
+    expect(result.rows[0].tier).toBe("easy");
+    expect(result.rows[0].familiarity_score).toBe(0.5);
     expect(result.rows[0].eligible_modes).toEqual(["title", "synopsis", "genre"]);
     expect(result.rows[0].approved_aliases).toEqual([]);
     expect(result.rows[0].cast_members).toHaveLength(1);
@@ -42,7 +44,7 @@ describe("catalog preparation", () => {
   });
 
   it("accepts exact 90-day/runtime/vote boundary; missing credits disable only dependent modes", async () => {
-    const provider = providerWithMovie({ release_date: "2026-08-06", runtime: 60, vote_count: 500 });
+    const provider = providerWithMovie({ release_date: "2026-08-06", runtime: 60, vote_count: 6000 });
     provider.credits = async () => { throw new TmdbError("http", false, 404); };
     const result = await prepareCatalog(provider, asOf);
     expect(result.rows[0].eligible_modes).toEqual(["title"]);
@@ -109,7 +111,7 @@ describe("catalog preparation", () => {
     });
     const result = run(["--dry-run", "--fixture"]);
     expect(result.status, result.stderr).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({ source: "fixture", status: "dry-run", activation: "blocked_tiering" });
+    expect(JSON.parse(result.stdout)).toMatchObject({ source: "fixture", status: "dry-run", activation: "blocked_fixture" });
     const forbidden = run(["--apply", "--fixture"]);
     expect(forbidden.status).toBe(1);
     expect(forbidden.stderr).toContain("Fixture apply forbidden");

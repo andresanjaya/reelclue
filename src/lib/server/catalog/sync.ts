@@ -4,6 +4,7 @@ import { TmdbError, type MovieProvider } from "../tmdb/client.ts";
 import { schemas } from "../tmdb/schemas.ts";
 import { cleanText, sanitizeSynopsis } from "./text.ts";
 import { verifyPoster } from "./poster.ts";
+import { assignTiers, type OverrideEntry, type Tier } from "./tiering.ts";
 
 export const catalogRules = "base-v1";
 export const modes = ["poster", "title", "synopsis", "cast", "genre"] as const;
@@ -15,10 +16,12 @@ export type CatalogMovie = {
   original_language: string; genres: string[]; sanitized_synopsis: string | null;
   directors: Array<{ id: number; name: string }>; cast_members: Array<{ id: number; name: string }>;
   approved_aliases: string[]; poster_path: string | null; source_revision: string; eligible_modes: Mode[];
+  tier: Tier | null; familiarity_score: number | null;
 };
 
 export async function prepareCatalog(provider: MovieProvider, asOf: string,
-  posterProbe: (path: string) => Promise<boolean> = verifyPoster) {
+  posterProbe: (path: string) => Promise<boolean> = verifyPoster,
+  overrides: readonly OverrideEntry[] = []) {
   if (!z.iso.date().safeParse(asOf).success || !["tmdb", "fixture"].includes(provider.source)) throw new Error("Invalid catalog input.");
   const cutoff = new Date(`${asOf}T00:00:00Z`);
   cutoff.setUTCDate(cutoff.getUTCDate() - 90);
@@ -106,7 +109,7 @@ export async function prepareCatalog(provider: MovieProvider, asOf: string,
           release_year: Number(movie.release_date.slice(0, 4)), vote_count: movie.vote_count, vote_average: movie.vote_average,
           popularity: movie.popularity, revenue: movie.revenue, runtime: movie.runtime!, original_language: movie.original_language,
           genres, sanitized_synopsis: synopsis, directors, cast_members: cast.slice(0, 5), approved_aliases: [], poster_path: poster,
-          source_revision: `${catalogRules}:${asOf}`, eligible_modes: eligible });
+          source_revision: `${catalogRules}:${asOf}`, eligible_modes: eligible, tier: null, familiarity_score: null });
       } catch (error) {
         if (error instanceof TmdbError && error.status === 404) { reject("not_found"); continue; }
         failed = true;
@@ -117,9 +120,41 @@ export async function prepareCatalog(provider: MovieProvider, asOf: string,
   const workers = await Promise.allSettled(Array.from({ length: 4 }, worker));
   if (workers.some(worker => worker.status === "rejected")) throw new Error("Catalog enrichment failed; no version staged.");
   rows.sort((a, b) => a.tmdb_id - b.tmdb_id);
-  return { rows, report: { source: provider.source, rulesVersion: catalogRules, asOf, releasedBefore,
-    candidates: ids.size, duplicates, accepted: rows.length, rejected, modeDisabled,
-    coverage: Object.fromEntries(modes.map(mode => [mode, rows.filter(row => row.eligible_modes.includes(mode)).length])),
-    tiers: "pending_rc007", activation: "blocked_tiering", providerCalls: calls, posterChecks,
-    maxProviderCalls: 4052, maxProviderAttempts: 12156 } };
+
+  const { approved, report: tierReport } = assignTiers(rows, overrides);
+  const activation = provider.source === "fixture"
+    ? "blocked_fixture"
+    : tierReport.shortages.length > 0
+      ? "blocked_coverage"
+      : "ready";
+
+  return {
+    rows: approved,
+    report: {
+      source: provider.source,
+      rulesVersion: catalogRules,
+      tieringVersion: tierReport.tieringVersion,
+      asOf,
+      releasedBefore,
+      candidates: ids.size,
+      duplicates,
+      baseAccepted: rows.length,
+      approved: approved.length,
+      unassigned: tierReport.unassigned,
+      rejected,
+      modeDisabled,
+      bands: tierReport.bands,
+      gateFailures: tierReport.gateFailures,
+      tiers: tierReport.tiers,
+      coverage: tierReport.coverage,
+      shortages: tierReport.shortages,
+      overridesApplied: tierReport.overridesApplied,
+      calibrationSample: tierReport.calibrationSample,
+      activation,
+      providerCalls: calls,
+      posterChecks,
+      maxProviderCalls: 4052,
+      maxProviderAttempts: 12156,
+    },
+  };
 }
