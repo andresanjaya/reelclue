@@ -13,7 +13,7 @@ A mobile-first movie guessing playground powered by TMDB. Guess through Poster B
 - [Required UI UX Pro Max installation and UI workflow](docs/UI-SKILL-SETUP.md)
 - [GitHub Project](https://github.com/users/andresanjaya/projects/7/views/1)
 
-Bootstrap stack: Next.js 16.4.5 App Router, React 19.3.1, strict TypeScript 5.9.3, Tailwind 4.3.4 and Zod 4.6.7. Home is a development placeholder, not a playable game. shadcn/ui, Supabase and TMDB integration belong to later tickets.
+Stack: Next.js 16.4.5 App Router, React 19.3.1, strict TypeScript 5.9.3, Tailwind 4.3.4, adapted shadcn/ui primitives, Lucide icons and Zod 4.6.7. Home is a development placeholder, not a playable game. Supabase and TMDB integration belong to later tickets.
 
 ## Local development
 
@@ -40,7 +40,7 @@ ESLint 9.39.5 is deprecated upstream but retained because current `eslint-plugin
 
 ## Review gate
 
-One ticket → one branch → one PR → Andre review → authorized merge. No self-merge or auto-merge. Normally dependencies must merge before work starts. Andre explicitly authorized RC-002 to proceed while RC-001 is In Review on 4 November 2026; this branch is stacked on RC-001, not permission to merge either PR or bypass future gates.
+One ticket → one branch → one PR → Andre review → authorized merge. No self-merge or auto-merge. Dependencies must merge before work starts. RC-003 branches from merged RC-002; no permission to merge current work or begin RC-004.
 
 ## Credentials
 
@@ -52,8 +52,8 @@ Movie metadata and images will be sourced from [TMDB](https://www.themoviedb.org
 
 ## Current delivery state
 
-All 28 repository issues were verified in Project #7 on 4 November 2026. RC-001 is merged; RC-002 adds bootstrap/CI and a noninteractive home placeholder only. No gameplay, DB/provider calls, automatic merge, branch protection or deployment is included. See [RC-002 validation](docs/RC-002-VALIDATION.md).
+All 28 repository issues were verified in Project #7 on 4 November 2026. RC-001 and RC-002 are merged. RC-003 adds UI foundations and an explicitly nonplayable `/ui-preview` with fictional suggestions and local-only controls, pending Andre's review. No gameplay, DB/provider calls, automatic merge, branch protection or deployment is included. See [RC-003 validation and screenshots](docs/RC-003-VALIDATION.md) and [RC-002 validation](docs/RC-002-VALIDATION.md).
 
 ## UI design guidance
 
-Use [UI UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) for OpenCode UI work. CLI **2.15.0** installed and verified in RC-002 with Python **3.12.0** (`py -3` or `python` on Windows; `python3` on macOS/Linux). Required integration is committed under `.opencode/skills/ui-ux-pro-max/`, including scripts/data and upstream license; no runtime dependency. OpenCode successfully loaded skill ID `ui-ux-pro-max` in the implementation session. RC-003 produces the reviewed design system; none generated here. See [setup and verification](docs/UI-SKILL-SETUP.md).
+Use [UI UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) for OpenCode UI work. CLI **2.15.0** installed and verified in RC-002 with Python **3.12.0** (`py -3` or `python` on Windows; `python3` on macOS/Linux). Required integration is committed under `.opencode/skills/ui-ux-pro-max/`, including scripts/data and upstream license; no runtime dependency. OpenCode successfully loaded skill ID `ui-ux-pro-max`. Read [candidate Master](design-system/reelclue/MASTER.md), awaiting Andre's RC-003 approval, plus relevant page override before later UI work. Semantic tokens live in `src/app/globals.css`; `/ui-preview` demonstrates shared components without creating games. See [setup, query results and UI checklist](docs/UI-SKILL-SETUP.md).
