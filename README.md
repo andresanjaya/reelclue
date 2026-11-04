@@ -52,7 +52,7 @@ Movie metadata and images will be sourced from [TMDB](https://www.themoviedb.org
 
 ## Current delivery state
 
-All 28 repository issues were verified in Project #7 on 4 November 2026. RC-001 is In Review; RC-002 adds bootstrap/CI and a noninteractive home placeholder only. No gameplay, DB/provider calls, automatic merge, branch protection or deployment is included. See [RC-002 validation](docs/RC-002-VALIDATION.md).
+All 28 repository issues were verified in Project #7 on 4 November 2026. RC-001 is merged; RC-002 adds bootstrap/CI and a noninteractive home placeholder only. No gameplay, DB/provider calls, automatic merge, branch protection or deployment is included. See [RC-002 validation](docs/RC-002-VALIDATION.md).
 
 ## UI design guidance
 
