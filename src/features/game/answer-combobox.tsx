@@ -3,9 +3,53 @@
 import { useEffect, useId, useState } from "react";
 import { Input } from "@/components/ui/input";
 
-export type MovieChoice = { handle: string; title: string; year: number };
+export type MovieChoice = {
+  handle: string;
+  title: string;
+  year: number;
+  choiceHandle?: string;
+  releaseYear?: number;
+};
 
-// ponytail: presentation-only foundation; RC-010 supplies safe server choices, debounce and cancellation.
+import { useMovieSearch } from "./use-movie-search";
+
+export { useMovieSearch };
+
+export function SearchableAnswerCombobox({
+  value,
+  onValueChange,
+  onSelect,
+  disabled = false,
+  minChars = 2,
+  debounceMs = 300,
+}: {
+  value: string;
+  onValueChange: (text: string) => void;
+  onSelect: (choice: MovieChoice) => void;
+  disabled?: boolean;
+  minChars?: number;
+  debounceMs?: number;
+}) {
+  const { choices, loading, error } = useMovieSearch(value, {
+    minChars,
+    debounceMs,
+    enabled: !disabled,
+  });
+
+  return (
+    <AnswerCombobox
+      value={value}
+      onValueChange={onValueChange}
+      onSelect={onSelect}
+      options={choices}
+      loading={loading}
+      error={error ?? undefined}
+      disabled={disabled}
+    />
+  );
+}
+
+// Presentation-only accessible combobox foundation wired to safe server choices in RC-010.
 export function AnswerCombobox({ value, onValueChange, onSelect, options, loading = false, error, disabled = false }: {
   value: string;
   onValueChange: (text: string) => void;
