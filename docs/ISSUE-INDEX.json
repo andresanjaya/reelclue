@@ -1,0 +1,264 @@
+[
+  {
+    "code": "RC-001",
+    "number": 1,
+    "url": "https://github.com/andresanjaya/reelclue/issues/1",
+    "priority": "P0",
+    "dependencies": []
+  },
+  {
+    "code": "RC-002",
+    "number": 2,
+    "url": "https://github.com/andresanjaya/reelclue/issues/2",
+    "priority": "P0",
+    "dependencies": [
+      "RC-001"
+    ]
+  },
+  {
+    "code": "RC-003",
+    "number": 3,
+    "url": "https://github.com/andresanjaya/reelclue/issues/3",
+    "priority": "P0",
+    "dependencies": [
+      "RC-002"
+    ]
+  },
+  {
+    "code": "RC-004",
+    "number": 4,
+    "url": "https://github.com/andresanjaya/reelclue/issues/4",
+    "priority": "P0",
+    "dependencies": [
+      "RC-002"
+    ]
+  },
+  {
+    "code": "RC-005",
+    "number": 5,
+    "url": "https://github.com/andresanjaya/reelclue/issues/5",
+    "priority": "P0",
+    "dependencies": [
+      "RC-002"
+    ]
+  },
+  {
+    "code": "RC-006",
+    "number": 6,
+    "url": "https://github.com/andresanjaya/reelclue/issues/6",
+    "priority": "P0",
+    "dependencies": [
+      "RC-004",
+      "RC-005"
+    ]
+  },
+  {
+    "code": "RC-007",
+    "number": 7,
+    "url": "https://github.com/andresanjaya/reelclue/issues/7",
+    "priority": "P0",
+    "dependencies": [
+      "RC-006"
+    ]
+  },
+  {
+    "code": "RC-008",
+    "number": 8,
+    "url": "https://github.com/andresanjaya/reelclue/issues/8",
+    "priority": "P0",
+    "dependencies": [
+      "RC-004",
+      "RC-007"
+    ]
+  },
+  {
+    "code": "RC-009",
+    "number": 9,
+    "url": "https://github.com/andresanjaya/reelclue/issues/9",
+    "priority": "P0",
+    "dependencies": [
+      "RC-008"
+    ]
+  },
+  {
+    "code": "RC-010",
+    "number": 10,
+    "url": "https://github.com/andresanjaya/reelclue/issues/10",
+    "priority": "P0",
+    "dependencies": [
+      "RC-003",
+      "RC-009"
+    ]
+  },
+  {
+    "code": "RC-011",
+    "number": 11,
+    "url": "https://github.com/andresanjaya/reelclue/issues/11",
+    "priority": "P0",
+    "dependencies": [
+      "RC-003",
+      "RC-008"
+    ]
+  },
+  {
+    "code": "RC-012",
+    "number": 12,
+    "url": "https://github.com/andresanjaya/reelclue/issues/12",
+    "priority": "P0",
+    "dependencies": [
+      "RC-010",
+      "RC-011"
+    ]
+  },
+  {
+    "code": "RC-013",
+    "number": 13,
+    "url": "https://github.com/andresanjaya/reelclue/issues/13",
+    "priority": "P0",
+    "dependencies": [
+      "RC-005",
+      "RC-012"
+    ]
+  },
+  {
+    "code": "RC-014",
+    "number": 14,
+    "url": "https://github.com/andresanjaya/reelclue/issues/14",
+    "priority": "P0",
+    "dependencies": [
+      "RC-012"
+    ]
+  },
+  {
+    "code": "RC-015",
+    "number": 15,
+    "url": "https://github.com/andresanjaya/reelclue/issues/15",
+    "priority": "P0",
+    "dependencies": [
+      "RC-012"
+    ]
+  },
+  {
+    "code": "RC-016",
+    "number": 16,
+    "url": "https://github.com/andresanjaya/reelclue/issues/16",
+    "priority": "P0",
+    "dependencies": [
+      "RC-012"
+    ]
+  },
+  {
+    "code": "RC-017",
+    "number": 17,
+    "url": "https://github.com/andresanjaya/reelclue/issues/17",
+    "priority": "P0",
+    "dependencies": [
+      "RC-012"
+    ]
+  },
+  {
+    "code": "RC-018",
+    "number": 18,
+    "url": "https://github.com/andresanjaya/reelclue/issues/18",
+    "priority": "P0",
+    "dependencies": [
+      "RC-013",
+      "RC-014",
+      "RC-015",
+      "RC-016",
+      "RC-017"
+    ]
+  },
+  {
+    "code": "RC-019",
+    "number": 19,
+    "url": "https://github.com/andresanjaya/reelclue/issues/19",
+    "priority": "P0",
+    "dependencies": [
+      "RC-018"
+    ]
+  },
+  {
+    "code": "RC-020",
+    "number": 20,
+    "url": "https://github.com/andresanjaya/reelclue/issues/20",
+    "priority": "P0",
+    "dependencies": [
+      "RC-019"
+    ]
+  },
+  {
+    "code": "RC-021",
+    "number": 21,
+    "url": "https://github.com/andresanjaya/reelclue/issues/21",
+    "priority": "P0",
+    "dependencies": [
+      "RC-003",
+      "RC-019"
+    ]
+  },
+  {
+    "code": "RC-022",
+    "number": 22,
+    "url": "https://github.com/andresanjaya/reelclue/issues/22",
+    "priority": "P0",
+    "dependencies": [
+      "RC-020",
+      "RC-021"
+    ]
+  },
+  {
+    "code": "RC-023",
+    "number": 23,
+    "url": "https://github.com/andresanjaya/reelclue/issues/23",
+    "priority": "P0",
+    "dependencies": [
+      "RC-022"
+    ]
+  },
+  {
+    "code": "RC-024",
+    "number": 24,
+    "url": "https://github.com/andresanjaya/reelclue/issues/24",
+    "priority": "P0",
+    "dependencies": [
+      "RC-023"
+    ]
+  },
+  {
+    "code": "RC-025",
+    "number": 25,
+    "url": "https://github.com/andresanjaya/reelclue/issues/25",
+    "priority": "P1",
+    "dependencies": [
+      "RC-024"
+    ]
+  },
+  {
+    "code": "RC-026",
+    "number": 26,
+    "url": "https://github.com/andresanjaya/reelclue/issues/26",
+    "priority": "P1",
+    "dependencies": [
+      "RC-024"
+    ]
+  },
+  {
+    "code": "RC-027",
+    "number": 27,
+    "url": "https://github.com/andresanjaya/reelclue/issues/27",
+    "priority": "P1",
+    "dependencies": [
+      "RC-024"
+    ]
+  },
+  {
+    "code": "RC-028",
+    "number": 28,
+    "url": "https://github.com/andresanjaya/reelclue/issues/28",
+    "priority": "P1",
+    "dependencies": [
+      "RC-024"
+    ]
+  }
+]
