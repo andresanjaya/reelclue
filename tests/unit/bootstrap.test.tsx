@@ -4,11 +4,10 @@ import Home from "../../src/app/page";
 import { parseEnv } from "../../src/lib/env";
 
 describe("bootstrap", () => {
-  it("renders an honest placeholder without nonfunctional game controls", () => {
+  it("renders brand heading and pitch on home", () => {
     render(<Home />);
     expect(screen.getByRole("heading", { name: "ReelClue", level: 1 })).toBeVisible();
-    expect(screen.getByText(/Gameplay is not available yet/)).toBeVisible();
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByText("Every clue brings you closer.")).toBeVisible();
   });
 
   it("starts without provider credentials and drops unknown fields", () => {
