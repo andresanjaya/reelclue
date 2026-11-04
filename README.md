@@ -13,7 +13,7 @@ A mobile-first movie guessing playground powered by TMDB. Guess through Poster B
 - [Required UI UX Pro Max installation and UI workflow](docs/UI-SKILL-SETUP.md)
 - [GitHub Project](https://github.com/users/andresanjaya/projects/7/views/1)
 
-Stack: Next.js 16.4.5 App Router, React 19.3.1, strict TypeScript 5.9.3, Tailwind 4.3.4, adapted shadcn/ui primitives, Lucide icons and Zod 4.6.7. Home is a development placeholder, not a playable game. Supabase schema/server client and TMDB adapter foundations exist; catalog import and gameplay belong to later tickets.
+Stack: Next.js 16.4.5 App Router, React 19.3.1, strict TypeScript 5.9.3, Tailwind 4.3.4, adapted shadcn/ui primitives, Lucide icons and Zod 4.6.7. Home is a development placeholder, not a playable game. Supabase/TMDB foundations and bounded catalog staging exist; tiering/production activation and gameplay remain later tickets.
 
 ## Local development
 
@@ -40,7 +40,7 @@ ESLint 9.39.5 is deprecated upstream but retained because current `eslint-plugin
 
 ## Review gate
 
-One ticket → one branch → one PR → Andre review → authorized merge. No self-merge or auto-merge. Dependencies must merge before work starts. RC-005 branches from merged RC-004; no permission to merge current work or begin RC-006.
+One ticket → one branch → one PR → Andre review → authorized merge. No self-merge or auto-merge. Dependencies must merge before work starts. RC-006 branches from merged RC-005; no permission to merge current work or begin RC-007.
 
 ## Credentials
 
@@ -52,7 +52,7 @@ Movie metadata and images will be sourced from [TMDB](https://www.themoviedb.org
 
 ## Current delivery state
 
-All 28 repository issues were verified in Project #7 on 4 November 2026. RC-001–RC-004 are merged. RC-005 adds server-only validated TMDB adapters, bounded retries/concurrency and fictional provider, pending review. No live TMDB check or owner DB change performed. `/ui-preview` remains fictional/local-only. No gameplay, catalog import, automatic merge, branch protection or deployment included. See [RC-005 adapter validation](docs/RC-005-TMDB.md), [RC-004 database validation](docs/RC-004-DATABASE.md), [RC-003 screenshots](docs/RC-003-VALIDATION.md) and [RC-002 validation](docs/RC-002-VALIDATION.md).
+All 28 repository issues were verified in Project #7 on 4 November 2026. RC-001–RC-005 are merged. RC-006 adds bounded catalog preparation/staging and aggregate quality report, pending review. `pnpm catalog:sync --dry-run --fixture` runs without secrets; real `--apply` stages only, production activation blocked until RC-007 tiering. No live TMDB check or owner DB change performed. `/ui-preview` remains fictional/local-only. No gameplay, automatic merge, branch protection or deployment included. See [RC-006 catalog commands/validation](docs/RC-006-CATALOG.md), [RC-005 adapter validation](docs/RC-005-TMDB.md), [RC-004 database validation](docs/RC-004-DATABASE.md) and [RC-003 screenshots](docs/RC-003-VALIDATION.md).
 
 ## UI design guidance
 

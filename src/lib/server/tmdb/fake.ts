@@ -1,5 +1,5 @@
 import "server-only";
-import { createTmdbProvider, type MovieProvider } from "./client";
+import { createTmdbProvider, type MovieProvider } from "./client.ts";
 
 // Fictional fixture, not TMDB facts. No real artwork, credentials or network fallback.
 export function createFakeMovieProvider(): MovieProvider {
