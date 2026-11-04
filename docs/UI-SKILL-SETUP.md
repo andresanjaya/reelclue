@@ -8,7 +8,7 @@ Updated 4 November 2026. Required for OpenCode UI work in ReelClue.
 - Official repository / installation guide: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill#installation
 - OpenCode integration definition: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/main/src/ui-ux-pro-max/templates/platforms/opencode.json
 
-RC-002 installed and verified CLI **2.15.0**, Node **22.23.3**, npm **10.9.9**, and Python **3.12.0**. OpenCode successfully loaded `ui-ux-pro-max` through its skill tool. Search help and a focused Next.js query ran successfully. No design system generated; RC-003 owns that deliverable. Backend-only work need not run design searches.
+RC-002 installed and verified CLI **2.15.0**, Node **22.23.3**, npm **10.9.9**, and Python **3.12.0**. OpenCode successfully loaded `ui-ux-pro-max` through its skill tool. Search help and a focused Next.js query ran successfully. RC-003 reused this installation and produced the candidate Master below; Andre's approval remains pending. Backend-only work need not run design searches.
 
 ## 1. Prerequisites
 
@@ -95,6 +95,38 @@ python3 "$PWD/.opencode/skills/ui-ux-pro-max/scripts/search.py" "responsive clue
 ```
 
 These are starting examples, not a requirement to repeat all searches on every small edit. Use the smallest relevant query for the task, keep private data out of queries, and report actual outputs. The examples have not been executed as part of this documentation change.
+
+### RC-003 usage evidence
+
+Installed skill loaded and read; no reinstallation or `--force` used. Queries ran with `py -3 .opencode/skills/ui-ux-pro-max/scripts/search.py`:
+
+| Query / flags | Actual fit and decision |
+| --- | --- |
+| `"movie quiz playful cinema" --design-system -p ReelClue -f markdown` | Partial: Dark Mode (OLED), warm gold and readable sans-serif fit. Funnel, booking, trailers and purple controls do not. |
+| `"casual trivia game dark" --design-system -p ReelClue -f markdown` | One narrower retry: unrelated Claymorphism, pink, handwritten fonts and testimonials. No verified whole-product match; rejected. |
+| `"combobox keyboard selection" --stack shadcn` | Returned Select, not editable autocomplete. |
+| `"combobox autocomplete" --stack shadcn` | Retry found no match. General WAI-ARIA combobox guidance and native controls used instead; no false database match claimed. |
+| `"responsive focus reduced motion" --stack html-tailwind` | Relevant visible-focus and reduced-motion guidance retained. |
+
+RC-002's focused Next.js guidance remains applicable: server components by default and static metadata. No framework version changed. Minimal shadcn new-york-v4 Button/Input/Skeleton adaptations plus native radios/progress avoid unnecessary primitive dependencies.
+
+Persisted, manually synthesized candidate: [`design-system/reelclue/MASTER.md`](../design-system/reelclue/MASTER.md), rooted explicitly in this repository; no pre-existing Master or page override overwritten. Irrelevant generator output was not persisted. No page override needed. This is a reviewed-for-fit proposal, **not yet Andre-approved**.
+
+Token mapping: Master roles become shadcn variables in [`src/app/globals.css`](../src/app/globals.css), exposed once through Tailwind v4 `@theme inline`. Shared controls use `bg-card`, `text-muted-foreground`, `bg-primary`, `text-primary-foreground`, `border-input`, `outline-ring`, `text-success` and `text-destructive`; no second styling system. PRD dark/amber colors retained. Control edge adjusted to `#6B7892` after original candidate measured 2.92:1 against accent. Native progress fill styled explicitly after Chrome ignored `accent-color`.
+
+RC-003 UI quality checklist, checked against production Chrome on Windows:
+
+- [x] Single semantic palette; system sans-serif, 4px spacing, consistent Lucide icons.
+- [x] 320/360/390/768/1440px reflow; no horizontal scroll; long fictional suggestion wraps.
+- [x] Interactive targets ≥44px and input ≥16px; in-flow suggestions, no fixed overlay or viewport lock.
+- [x] Native radio keyboard navigation, tab order, visible focus, combobox selection separate from submission.
+- [x] Text contrast ≥4.5:1 and control/focus contrast ≥3:1 on tested semantic surfaces; icon + text feedback.
+- [x] Loading/error/empty/disabled states; typed input survives simulated search failure; reduced motion stops animation.
+- [x] Explicit nonplayable demo; no server search, gameplay, storage, real movie artwork or provider request.
+- [ ] Physical Safari/iOS virtual keyboard and assistive-technology checks: not performed; launch follow-up, not inferred from Chrome.
+- [ ] Andre's approval of candidate Master: review gate still open.
+
+Phone/desktop and keyboard/error screenshots: [360px](evidence/rc-003/preview-360.png), [1440px](evidence/rc-003/preview-1440.png), [390px error](evidence/rc-003/keyboard-error-390.png). Full command results and reproducible manual steps: [RC-003 validation](RC-003-VALIDATION.md). Generated guidance alone was not treated as compliance evidence.
 
 ## 4. Required behavior on every UI ticket
 
