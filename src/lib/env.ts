@@ -4,7 +4,7 @@ const schema = z.object({
   APP_BASE_URL: z.url({ protocol: /^https?$/ }).default("http://localhost:3000"),
 });
 
-// DB configuration is validated lazily in server/db/config.ts; provider schema belongs to RC-005.
+// DB and TMDB configuration validated lazily in server modules; static pages need no credentials.
 export function parseEnv(source: Record<string, string | undefined>) {
   const result = schema.safeParse(source);
   if (!result.success) {
