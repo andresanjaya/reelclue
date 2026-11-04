@@ -8,7 +8,7 @@ Updated 4 November 2026. Required for OpenCode UI work in ReelClue.
 - Official repository / installation guide: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill#installation
 - OpenCode integration definition: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/main/src/ui-ux-pro-max/templates/platforms/opencode.json
 
-This change documents the required setup. It does not install the tool on Andre's computer, run the design generator, or claim that a design system already exists. RC-002 performs and records setup; RC-003 generates the reviewable design baseline. Later UI tickets reuse the approved baseline. Backend-only work need not run design searches.
+RC-002 installed and verified CLI **2.15.0**, Node **22.23.3**, npm **10.9.9**, and Python **3.12.0**. OpenCode successfully loaded `ui-ux-pro-max` through its skill tool. Search help and a focused Next.js query ran successfully. No design system generated; RC-003 owns that deliverable. Backend-only work need not run design searches.
 
 ## 1. Prerequisites
 
@@ -29,13 +29,13 @@ The official npm package is **ui-ux-pro-max-cli**; its executable is **uipro**. 
 Owner/local setup commands, run from the intended ReelClue checkout:
 
 ```bash
-npm install -g ui-ux-pro-max-cli
+npm install -g ui-ux-pro-max-cli@2.15.0
 # Change into your actual ReelClue repository root before initialization.
-uipro init --ai opencode --dry-run
+uipro init --help
 uipro init --ai opencode
 ```
 
-The global command installs the development CLI, while `--ai opencode` creates the repository's OpenCode integration. It does not add a browser library to ReelClue. Use the installed CLI's help/current official README if an option differs at implementation time; record the actual installed version and do not guess a published npm version from a repository source file. Inspect the dry-run and preserve existing project rules. The instructions here authorize documentation only; actual installation belongs to RC-002/local owner setup.
+The global command installs development tooling, not a browser library. CLI 2.15.0 **does not support `--dry-run`** (verified unknown-option error). Preview `uipro init --ai opencode` in a fresh temporary directory, inspect generated paths, then run in the project without `--force`. In this version it also generates six unrelated skill directories; RC-002 removed only those newly generated directories and retained `ui-ux-pro-max` with its required scripts/data. Existing agent rules were unchanged. For a fresh clone, committed integration already exists; do not rerun the installer unless intentionally updating it. Preserve upstream notices and record changed CLI versions.
 
 Expected integration files include:
 
@@ -59,7 +59,7 @@ uipro --version
 py -3 "$PWD/.opencode/skills/ui-ux-pro-max/scripts/search.py" --help
 ```
 
-If OpenCode is already open, reload/restart its project session if needed to discover the new local skill. Confirm discovery from the actual OpenCode session rather than assuming a folder alone proves activation. Record version, paths and verification in RC-002/its PR. Commit only intentional project-scoped integration/configuration needed for reproducibility, retain applicable upstream license notices when redistributing assets, and exclude caches/machine-specific files. Do not vendor the whole upstream repository into the application.
+OpenCode V2 watches local skills; discovery worked in the existing session without restart. Use `/reload` only if needed. Verify by loading skill ID `ui-ux-pro-max`, not merely checking folders. RC-002 did so successfully. Only required project-scoped integration is committed, with upstream MIT license; Python caches are ignored. Do not vendor the whole upstream repository into the application.
 
 ## 3. Generate ReelClue's design baseline in RC-003
 
