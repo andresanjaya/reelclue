@@ -1,5 +1,6 @@
 import "server-only";
 import { type ClueMode } from "./clues.ts";
+export type { ClueMode };
 
 export type SessionMode = ClueMode | "mixed";
 export type SessionLevel = "easy" | "medium" | "hard";
@@ -28,10 +29,10 @@ export class CatalogShortageError extends Error {
   }
 }
 
-function shuffleArray<T>(items: T[]): T[] {
+function shuffleArray<T>(items: T[], rng: () => number = Math.random): T[] {
   const arr = [...items];
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     const tmp = arr[i];
     arr[i] = arr[j];
     arr[j] = tmp;
@@ -42,7 +43,8 @@ function shuffleArray<T>(items: T[]): T[] {
 export function selectSingleModeMovies(
   candidates: PoolCandidate[],
   mode: ClueMode,
-  recentMovieIds: number[] = []
+  recentMovieIds: number[] = [],
+  rng: () => number = Math.random
 ): number[] {
   const eligible = candidates.filter(c => c.eligible_modes.includes(mode));
   const recentSet = new Set(recentMovieIds.slice(0, 30));
@@ -54,34 +56,41 @@ export function selectSingleModeMovies(
     throw new CatalogShortageError();
   }
 
-  const shuffled = shuffleArray(poolToUse);
+  const shuffled = shuffleArray(poolToUse, rng);
   return shuffled.slice(0, 10).map(c => c.tmdb_id);
 }
 
 export function solveMixedDistribution(
   candidates: PoolCandidate[],
-  recentMovieIds: number[] = []
+  recentMovieIds: number[] = [],
+  rng: () => number = Math.random
 ): Array<{ movie_id: number; mode: ClueMode }> {
+  // ponytail: capped at 30 recent movie IDs; upgrade to player-profile preference window if needed
   const recentSet = new Set(recentMovieIds.slice(0, 30));
 
   // First try with recent movies excluded
-  let pool = candidates.filter(c => !recentSet.has(c.tmdb_id));
-  let result = tryMixedAllocation(pool);
-  if (!result) {
-    // Relax recent exclusions per PRD
-    pool = candidates;
-    result = tryMixedAllocation(pool);
+  const preferred = candidates.filter(c => !recentSet.has(c.tmdb_id));
+  let result: Array<{ movie_id: number; mode: ClueMode }> | null = null;
+
+  if (preferred.length >= 10) {
+    result = tryMixedAllocation(preferred, rng);
+  }
+
+  // If preferred pool cannot satisfy allocation, relax recent exclusions (never relax tier gate)
+  if (!result && preferred.length < candidates.length) {
+    result = tryMixedAllocation(candidates, rng);
   }
 
   if (!result) {
     throw new CatalogShortageError();
   }
 
-  return shuffleArray(result);
+  return shuffleArray(result, rng);
 }
 
 function tryMixedAllocation(
-  candidates: PoolCandidate[]
+  candidates: PoolCandidate[],
+  rng: () => number = Math.random
 ): Array<{ movie_id: number; mode: ClueMode }> | null {
   if (candidates.length < 10) return null;
 
@@ -95,11 +104,13 @@ function tryMixedAllocation(
   // If any mode has fewer than 2 candidates, allocation is immediately impossible
   if (modeCounts.some(mc => mc.eligible.length < 2)) return null;
 
+  const shuffledCandidates = shuffleArray(candidates, rng);
+
   const attemptCounter = { attempts: 0 };
   const assignment: Array<{ movie_id: number; mode: ClueMode }> = [];
   const assignedIds = new Set<number>();
 
-  const success = backtrack(0, modeCounts, candidates, assignedIds, assignment, attemptCounter);
+  const success = backtrack(0, modeCounts, shuffledCandidates, assignedIds, assignment, attemptCounter);
   return success ? assignment : null;
 }
 
@@ -116,16 +127,16 @@ function backtrack(
   }
 
   const { mode } = modeCounts[modeIdx];
-  const available = shuffleArray(allCandidates.filter(c => c.eligible_modes.includes(mode) && !assignedIds.has(c.tmdb_id)));
+  const available = allCandidates.filter(c => c.eligible_modes.includes(mode) && !assignedIds.has(c.tmdb_id));
 
   if (available.length < 2) return false;
 
-  // Try pairs
+  // Try pairs deterministically
   for (let i = 0; i < available.length - 1; i++) {
     for (let j = i + 1; j < available.length; j++) {
       counter.attempts++;
       if (counter.attempts > 100) {
-        return false; // Bounded backtracking
+        return false; // Bounded backtracking (max 100 attempts)
       }
 
       const c1 = available[i];
@@ -154,14 +165,15 @@ function backtrack(
 export function selectGameRounds(
   candidates: PoolCandidate[],
   mode: SessionMode,
-  recentMovieIds: number[] = []
+  recentMovieIds: number[] = [],
+  rng: () => number = Math.random
 ): SelectedRound[] {
   let pairs: Array<{ movie_id: number; mode: ClueMode }>;
 
   if (mode === "mixed") {
-    pairs = solveMixedDistribution(candidates, recentMovieIds);
+    pairs = solveMixedDistribution(candidates, recentMovieIds, rng);
   } else {
-    const movieIds = selectSingleModeMovies(candidates, mode, recentMovieIds);
+    const movieIds = selectSingleModeMovies(candidates, mode, recentMovieIds, rng);
     pairs = movieIds.map(movie_id => ({ movie_id, mode }));
   }
 
