@@ -59,7 +59,7 @@ export function ClueRenderer({ clue }: { clue: SafeClue }) {
           </div>
           <p
             aria-label={`Masked title: ${clue.maskedTitle}`}
-            className="font-mono text-2xl font-bold tracking-widest text-foreground select-none sm:text-4xl"
+            className="w-full min-w-0 wrap-anywhere whitespace-pre-wrap font-mono text-2xl font-bold tracking-widest text-foreground select-none sm:text-4xl"
           >
             {clue.maskedTitle}
           </p>

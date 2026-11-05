@@ -50,6 +50,35 @@ const sampleMovie: MovieDetails = {
 describe("Missing Title grapheme masking", () => {
   const seed = "40000000-0000-0000-0000-000000000001";
 
+  it("uses exact PRD fractions, nested positions, and stable seeded results after refresh", () => {
+    for (const title of ["Spider-Man: No Way Home", "東京物語と映画", "Café: 你好世界", "The Fellowship of the Ring"]) {
+      const chars = Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment(title), part => part.segment);
+      const count = chars.filter(char => /[\p{L}\p{N}]/u.test(char)).length;
+      let previous: string[] | undefined;
+      for (const [stage, fraction] of [0.35, 0.5, 0.65, 0.8].entries()) {
+        const masked = maskTitleByGrapheme(title, seed, stage);
+        const parts = Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment(masked), part => part.segment);
+        expect(maskTitleByGrapheme(title, seed, stage)).toBe(masked);
+        expect(parts).toHaveLength(chars.length);
+        expect(parts.filter((part, index) => /[\p{L}\p{N}]/u.test(chars[index]) && part !== "_")).toHaveLength(
+          Math.min(count - 1, Math.max(1, Math.floor(count * fraction)))
+        );
+        chars.forEach((part, index) => {
+          if (!/[\p{L}\p{N}]/u.test(part)) expect(parts[index]).toBe(part);
+          if (previous?.[index] !== "_" && previous && /[\p{L}\p{N}]/u.test(part)) expect(parts[index]).toBe(previous[index]);
+        });
+        expect(masked).toContain("_");
+        previous = parts;
+      }
+    }
+  });
+
+  it("rejects titles with fewer than five maskable graphemes even if called directly", () => {
+    for (const title of ["Amél", "🎬: 東京", "🏳️‍🌈 1234"]) {
+      expect(() => maskTitleByGrapheme(title, seed, 0)).toThrow("not eligible");
+    }
+  });
+
   it("masks letters while preserving spaces and punctuation", () => {
     const masked = maskTitleByGrapheme("Spider-Man: No Way Home", seed, 0);
     expect(masked).toMatch(/^[A-Za-z0-9_\-:\s]+$/);

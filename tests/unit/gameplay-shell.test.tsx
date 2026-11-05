@@ -104,6 +104,14 @@ describe("ClueRenderer", () => {
     expect(screen.getByText("F _ _ _ _ C _ _ _")).toBeInTheDocument();
   });
 
+  it("preserves Unicode punctuation and lets long masked titles wrap without hiding clue", () => {
+    const clue = "東_映画: 旅の_ / " + "_".repeat(90);
+    render(<ClueRenderer clue={{ mode: "title", maskedTitle: clue }} />);
+    const text = screen.getByLabelText(`Masked title: ${clue}`);
+    expect(text).toHaveClass("wrap-anywhere", "whitespace-pre-wrap", "min-w-0");
+    expect(text.textContent).toBe(clue);
+  });
+
   it("renders synopsis clue with sanitized text and optional hints", () => {
     render(
       <ClueRenderer
