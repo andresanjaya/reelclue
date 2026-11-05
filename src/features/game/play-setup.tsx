@@ -21,8 +21,12 @@ export function PlaySetup() {
   const modeParam = searchParams?.get("mode") as Mode | null;
   const initialMode = modes.some(m => m.id === modeParam) ? modeParam! : "poster";
 
+  const levelParam = (searchParams?.get("difficulty") ?? searchParams?.get("level"))?.toLowerCase();
+  const initialLevel: Level =
+    levelParam === "medium" ? "Medium" : levelParam === "hard" ? "Hard" : "Easy";
+
   const [mode, setMode] = useState<Mode>(initialMode);
-  const [level, setLevel] = useState<Level>("Easy");
+  const [level, setLevel] = useState<Level>(initialLevel);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

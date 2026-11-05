@@ -2,11 +2,13 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { createDbClient } from "../db/client.ts";
 import {
+  serializeGameResults,
   serializeGameSession,
   serializeTerminalReveal,
   type AmbiguousChoice,
   type DbRound,
   type DbSession,
+  type GameResultsDto,
   type GuessResponseDto,
   type SafeSessionDto,
 } from "./dto.ts";
@@ -319,6 +321,104 @@ export async function fetchSafeSession(
   });
 
   return serializeGameSession(session as DbSession, activeRound as DbRound, activeMovie, completedPairs);
+}
+
+export async function fetchGameResults(
+  sessionId: string,
+  playerTokenHash: string
+): Promise<GameResultsDto> {
+  const db = createDbClient();
+
+  // 1. Authenticate player
+  const { data: player, error: pError } = await db
+    .from("anonymous_players")
+    .select("id")
+    .eq("token_hash", playerTokenHash)
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+
+  if (pError || !player) {
+    throw new GameError(401, "UNAUTHORIZED", "Missing or invalid player identity");
+  }
+
+  // 2. Fetch session
+  const { data: session, error: sError } = await db
+    .from("game_sessions")
+    .select("*")
+    .eq("id", sessionId)
+    .maybeSingle();
+
+  if (sError || !session) {
+    throw new GameError(404, "NOT_FOUND", "Game session not found");
+  }
+
+  // PRD: Wrong owner cannot access results; return 404 to avoid leaking existence
+  if (session.player_id !== player.id) {
+    throw new GameError(404, "NOT_FOUND", "Game session not found");
+  }
+
+  // PRD: Incomplete sessions cannot view results; return 409 Conflict
+  if (session.state !== "completed") {
+    if (session.state === "expired") {
+      throw new GameError(410, "SESSION_EXPIRED", "Game session expired");
+    }
+    throw new GameError(409, "SESSION_INCOMPLETE", "Game session is not completed yet");
+  }
+
+  // PRD retention: 30 days for completed session
+  if (session.completed_at) {
+    const completedAtMs = new Date(session.completed_at).getTime();
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    if (Date.now() - completedAtMs > thirtyDaysMs) {
+      throw new GameError(410, "SESSION_EXPIRED", "Game session results expired");
+    }
+  }
+
+  // 3. Fetch all 10 rounds
+  const { data: rounds, error: rError } = await db
+    .from("game_rounds")
+    .select("*")
+    .eq("session_id", sessionId)
+    .order("ordinal", { ascending: true });
+
+  if (rError || !rounds || rounds.length !== 10) {
+    throw new GameError(500, "ROUNDS_QUERY_FAILED", "Failed to retrieve game rounds");
+  }
+
+  // 4. Fetch movies for all 10 rounds
+  const movieIds = rounds.map(r => r.movie_id);
+  const { data: movies, error: mError } = await db
+    .from("movies")
+    .select("tmdb_id, title, original_title, release_year, original_language, genres, sanitized_synopsis, directors, cast_members, poster_path")
+    .eq("catalog_version_id", session.catalog_version_id)
+    .in("tmdb_id", movieIds);
+
+  if (mError || !movies) {
+    throw new GameError(500, "MOVIES_QUERY_FAILED", "Failed to retrieve movie details");
+  }
+
+  const movieMap = new Map<number, MovieDetails>();
+  for (const m of movies) {
+    movieMap.set(m.tmdb_id, m as MovieDetails);
+  }
+
+  const roundPairs = rounds.map(round => {
+    const movie = movieMap.get(round.movie_id) ?? ({
+      tmdb_id: round.movie_id,
+      title: "Unknown Movie",
+      original_title: "Unknown Movie",
+      release_year: 0,
+      original_language: "en",
+      genres: [],
+      sanitized_synopsis: null,
+      directors: [],
+      cast_members: [],
+      poster_path: null,
+    } as unknown as MovieDetails);
+    return { round: round as DbRound, movie };
+  });
+
+  return serializeGameResults(session as DbSession, roundPairs);
 }
 
 export async function mutateGameAction(opts: {
