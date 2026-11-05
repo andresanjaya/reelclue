@@ -1,19 +1,25 @@
+"use client";
+
+import { useState } from "react";
 import { Film, Image as ImageIcon, Sparkles, User, Users } from "lucide-react";
 import type { SafeClue } from "@/lib/server/game/clues";
 
 export function ClueRenderer({ clue }: { clue: SafeClue }) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
   switch (clue.mode) {
     case "poster":
       return (
         <div className="flex flex-col items-center space-y-4 rounded-xl border border-input bg-card/60 p-4 sm:p-6">
           <div className="relative aspect-2/3 w-full max-w-65 overflow-hidden rounded-lg bg-secondary shadow-lg">
-            {clue.posterUrl ? (
+            {clue.posterUrl && failedUrl !== clue.posterUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={clue.posterUrl}
+                src={retry ? `${clue.posterUrl}&retry=${retry}` : clue.posterUrl}
                 alt="Movie poster clue"
                 className="h-full w-full object-cover transition-opacity duration-300"
                 loading="eager"
+                onError={() => setFailedUrl(clue.posterUrl)}
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-muted-foreground">
@@ -21,6 +27,12 @@ export function ClueRenderer({ clue }: { clue: SafeClue }) {
               </div>
             )}
           </div>
+          {failedUrl === clue.posterUrl && (
+            <div role="alert" className="space-y-2 text-center text-sm text-muted-foreground">
+              <p>Poster could not load. Attempts and score stay unchanged.</p>
+              <button type="button" className="min-h-11 rounded-md border border-input px-4 font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" onClick={() => { setRetry(value => value + 1); setFailedUrl(null); }}>Retry poster</button>
+            </div>
+          )}
           {(clue.releaseYear || clue.primaryGenre) && (
             <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-xs">
               {clue.releaseYear && (

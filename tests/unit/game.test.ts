@@ -112,7 +112,7 @@ describe("Safe clue building and leak prevention", () => {
     const clue0 = buildSafeClue("poster", 0, sampleMovie, sessionId, roundId, seed);
     expect(clue0).toEqual({
       mode: "poster",
-      posterUrl: `/api/games/${sessionId}/rounds/${roundId}/poster`,
+      posterUrl: `/api/games/${sessionId}/rounds/${roundId}/poster?stage=0`,
     });
     expect(JSON.stringify(clue0)).not.toContain("Inception");
     expect(JSON.stringify(clue0)).not.toContain("2010");
@@ -120,7 +120,7 @@ describe("Safe clue building and leak prevention", () => {
     const clue3 = buildSafeClue("poster", 3, sampleMovie, sessionId, roundId, seed);
     expect(clue3).toEqual({
       mode: "poster",
-      posterUrl: `/api/games/${sessionId}/rounds/${roundId}/poster`,
+      posterUrl: `/api/games/${sessionId}/rounds/${roundId}/poster?stage=3`,
       releaseYear: 2010,
       primaryGenre: "Action",
     });

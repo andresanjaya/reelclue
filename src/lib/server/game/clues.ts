@@ -134,7 +134,7 @@ export function buildSafeClue(
     case "poster": {
       const clue: SafeClue = {
         mode: "poster",
-        posterUrl: `/api/games/${sessionId}/rounds/${roundId}/poster`,
+        posterUrl: `/api/games/${sessionId}/rounds/${roundId}/poster?stage=${Math.min(stage, 3)}`,
       };
       if (stage >= 3) {
         clue.releaseYear = movie.release_year;
