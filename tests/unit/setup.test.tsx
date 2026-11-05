@@ -2,6 +2,11 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Home from "../../src/app/page";
 import { PlaySetup } from "../../src/features/game/play-setup";
+import {
+  _resetMemoryStorageForTesting,
+  saveActiveSession,
+  savePreferences,
+} from "../../src/lib/client/storage";
 
 // Mock next/navigation
 const mockPush = vi.fn();
@@ -43,6 +48,8 @@ describe("Home page", () => {
 
 describe("PlaySetup component", () => {
   beforeEach(() => {
+    window.localStorage.clear();
+    _resetMemoryStorageForTesting();
     mockPush.mockReset();
     mockSearchParams = new URLSearchParams();
     vi.restoreAllMocks();
@@ -196,5 +203,35 @@ describe("PlaySetup component", () => {
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith("/play/retry-session-456");
     });
+  });
+
+  it("preselects mode and level from saved preferences when query params are absent", () => {
+    savePreferences({ mode: "genre", level: "hard" });
+
+    render(<PlaySetup />);
+
+    const genreRadio = screen.getByRole("radio", { name: /Genre Detective/ });
+    expect(genreRadio).toBeChecked();
+
+    const hardRadio = screen.getByRole("radio", { name: /Hard/ });
+    expect(hardRadio).toBeChecked();
+  });
+
+  it("displays resumable active session banner and allows dismissal", () => {
+    saveActiveSession({ id: "active-session-xyz", mode: "synopsis", level: "medium" });
+
+    render(<PlaySetup />);
+
+    expect(screen.getByText("In-progress game found")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /You have an active session \(Synopsis · Medium\)/ })).toBeInTheDocument();
+
+    const resumeLink = screen.getByRole("link", { name: "Resume Game" });
+    expect(resumeLink).toHaveAttribute("href", "/play/active-session-xyz");
+
+    // Dismiss banner
+    const dismissBtn = screen.getByRole("button", { name: "Dismiss" });
+    fireEvent.click(dismissBtn);
+
+    expect(screen.queryByText("In-progress game found")).not.toBeInTheDocument();
   });
 });

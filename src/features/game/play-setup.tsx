@@ -2,9 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Film, Play } from "lucide-react";
+import { BarChart3, Clock, Film, Play } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import {
+  dismissActiveSession,
+  getActiveResumableSession,
+  loadLocalData,
+  saveActiveSession,
+  savePreferences,
+  type LastSessionRecord,
+} from "@/lib/client/storage";
 import {
   Feedback,
   LevelSelector,
@@ -19,14 +27,37 @@ export function PlaySetup() {
   const searchParams = useSearchParams();
 
   const modeParam = searchParams?.get("mode") as Mode | null;
-  const initialMode = modes.some(m => m.id === modeParam) ? modeParam! : "poster";
-
   const levelParam = (searchParams?.get("difficulty") ?? searchParams?.get("level"))?.toLowerCase();
-  const initialLevel: Level =
-    levelParam === "medium" ? "Medium" : levelParam === "hard" ? "Hard" : "Easy";
 
-  const [mode, setMode] = useState<Mode>(initialMode);
-  const [level, setLevel] = useState<Level>(initialLevel);
+  const [mode, setMode] = useState<Mode>(() => {
+    if (modes.some(m => m.id === modeParam)) return modeParam!;
+    if (typeof window !== "undefined") {
+      const pref = loadLocalData().preferences.mode;
+      if (pref && modes.some(m => m.id === pref)) return pref as Mode;
+    }
+    return "poster";
+  });
+
+  const [level, setLevel] = useState<Level>(() => {
+    if (levelParam === "medium") return "Medium";
+    if (levelParam === "hard") return "Hard";
+    if (levelParam === "easy") return "Easy";
+    if (typeof window !== "undefined") {
+      const pref = loadLocalData().preferences.level?.toLowerCase();
+      if (pref === "medium") return "Medium";
+      if (pref === "hard") return "Hard";
+      if (pref === "easy") return "Easy";
+    }
+    return "Easy";
+  });
+
+  const [resumableSession, setResumableSession] = useState<LastSessionRecord | null>(() => {
+    if (typeof window !== "undefined") {
+      return getActiveResumableSession();
+    }
+    return null;
+  });
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +83,11 @@ export function PlaySetup() {
       // 1. Ensure player identity established
       await fetch("/api/player", { method: "POST" });
 
-      // 2. Create game session
+      // 2. Fetch recent movie IDs to prefer excluding
+      const localData = loadLocalData();
+      const recentMovieIds = localData.recent_movie_ids;
+
+      // 3. Create game session
       const res = await fetch("/api/games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -60,6 +95,7 @@ export function PlaySetup() {
           mode,
           difficulty: level.toLowerCase(),
           actionId,
+          recentMovieIds,
         }),
       });
 
@@ -83,6 +119,12 @@ export function PlaySetup() {
       }
 
       const session = await res.json();
+      saveActiveSession({
+        id: session.id,
+        mode,
+        level: level.toLowerCase(),
+      });
+
       router.push(`/play/${session.id}`);
     } catch {
       setError("Network connection error. Please check your connection and try again.");
@@ -91,20 +133,72 @@ export function PlaySetup() {
     }
   };
 
+  const resumableModeLabel = resumableSession
+    ? modes.find(m => m.id === resumableSession.mode)?.label ?? resumableSession.mode
+    : "";
+  const resumableLevelLabel = resumableSession
+    ? resumableSession.level.charAt(0).toUpperCase() + resumableSession.level.slice(1)
+    : "";
+
   return (
     <main className="mx-auto max-w-280 space-y-8 px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
       <header className="max-w-2xl space-y-3">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-        >
-          <Film aria-hidden="true" className="size-5" /> ReelClue
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+          >
+            <Film aria-hidden="true" className="size-5" /> ReelClue
+          </Link>
+          <Link
+            href="/stats"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+          >
+            <BarChart3 aria-hidden="true" className="size-4" />
+            <span>Stats</span>
+          </Link>
+        </div>
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Game setup</h1>
         <p className="text-muted-foreground">
           Choose a clue mode and difficulty level. Every game features 10 distinct movie rounds.
         </p>
       </header>
+
+      {/* Resume Active Session Banner */}
+      {resumableSession && (
+        <section
+          aria-labelledby="resume-heading"
+          className="max-w-2xl flex flex-col gap-3 rounded-xl border border-primary/40 bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="space-y-1">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
+              <Clock aria-hidden="true" className="size-3.5" />
+              In-progress game found
+            </span>
+            <h2 id="resume-heading" className="text-sm font-medium text-foreground">
+              You have an active session ({resumableModeLabel} · {resumableLevelLabel})
+            </h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/play/${resumableSession.id}`}
+              className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+            >
+              Resume Game
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                dismissActiveSession();
+                setResumableSession(null);
+              }}
+              className="inline-flex min-h-11 items-center justify-center rounded-md border border-input bg-secondary px-3 py-2 text-sm font-medium text-secondary-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+            >
+              Dismiss
+            </button>
+          </div>
+        </section>
+      )}
 
       <form
         onSubmit={e => {
@@ -125,6 +219,7 @@ export function PlaySetup() {
                 checked={mode === item.id}
                 onChange={() => {
                   setMode(item.id);
+                  savePreferences({ mode: item.id });
                   setError(null);
                 }}
               />
@@ -137,6 +232,7 @@ export function PlaySetup() {
           value={level}
           onChange={l => {
             setLevel(l);
+            savePreferences({ level: l.toLowerCase() });
             setError(null);
           }}
           disabled={submitting}

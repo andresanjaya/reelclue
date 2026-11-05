@@ -13,6 +13,7 @@ const createGameSchema = z.object({
   mode: z.enum(["poster", "title", "synopsis", "cast", "genre", "mixed"]),
   difficulty: z.enum(["easy", "medium", "hard"]),
   actionId: z.string().uuid(),
+  recentMovieIds: z.array(z.number().int().positive()).max(30).optional(),
 });
 
 export async function POST(request: Request) {
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
       actionId: parsed.data.actionId,
       mode: parsed.data.mode,
       level: parsed.data.difficulty,
+      recentMovieIds: parsed.data.recentMovieIds,
     });
 
     return NextResponse.json(session, {
