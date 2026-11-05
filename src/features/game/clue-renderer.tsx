@@ -71,12 +71,12 @@ export function ClueRenderer({ clue }: { clue: SafeClue }) {
 
     case "synopsis":
       return (
-        <div className="space-y-4 rounded-xl border border-input bg-card/60 p-5 sm:p-6">
+        <div className="w-full min-w-0 space-y-4 rounded-xl border border-input bg-card/60 p-5 sm:p-6">
           <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-primary uppercase">
             <Film aria-hidden="true" className="size-4" />
             <span>Plot Synopsis</span>
           </div>
-          <blockquote className="border-l-2 border-primary/50 pl-4 text-base leading-relaxed text-foreground italic sm:text-lg">
+          <blockquote className="w-full min-w-0 wrap-anywhere border-l-2 border-primary/50 pl-4 text-base leading-relaxed text-foreground italic sm:text-lg">
             &ldquo;{clue.synopsis}&rdquo;
           </blockquote>
           {(clue.decade || clue.primaryGenre || clue.director) && (

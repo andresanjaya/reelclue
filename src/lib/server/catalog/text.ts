@@ -1,5 +1,12 @@
 import "server-only";
 
+const COMMON_WORDS = new Set([
+  "the", "and", "home", "love", "life", "dark", "time", "dead", "star", "fast",
+  "gold", "lost", "fire", "king", "girl", "city", "last", "good", "game", "fall",
+  "back", "true", "wild", "real", "over", "into", "from", "with", "that", "this",
+  "her", "it", "us", "up"
+]);
+
 // Unknown entities or broken markup disable text rather than guessing how browser would decode it.
 export function cleanText(value: string) {
   const text = value.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, " ")
@@ -25,7 +32,7 @@ export function sanitizeSynopsis(raw: string | null, titles: readonly string[]) 
   if (!text) return null;
   const names = [...new Set(titles.map(normalized).filter(Boolean))].sort((a, b) => b.length - a.length);
   // ponytail: common/short single-word aliases need human review; disable synopsis, keep other modes.
-  if (names.some(name => name.length < 4 || ["the", "and", "home", "love", "life", "her", "it", "us", "up"].includes(name))) return null;
+  if (names.some(name => name.length < 4 || COMMON_WORDS.has(name))) return null;
   const segments = [...new Intl.Segmenter("en", { granularity: "grapheme" }).segment(text)];
   let norm = "";
   const positions: Array<{ start: number; end: number }> = [];
@@ -45,7 +52,7 @@ export function sanitizeSynopsis(raw: string | null, titles: readonly string[]) 
       if ((offset === 0 || norm[offset - 1] === " ") && (end === norm.length || norm[end] === " ")) {
         ranges.push({ start: positions[offset].start, end: positions[end - 1].end });
       }
-      offset = end;
+      offset = offset + 1;
     }
   }
   const merged: typeof ranges = [];
@@ -58,10 +65,19 @@ export function sanitizeSynopsis(raw: string | null, titles: readonly string[]) 
   for (const range of merged.reverse()) result = result.slice(0, range.start) + "[movie]" + result.slice(range.end);
   if (result.length > 600) {
     const prefix = [...result].slice(0, 600).join("");
-    const sentence = prefix.lastIndexOf(". ") + 1;
+    const endMatch = /[.!?]$/.test(prefix) ? prefix.length : -1;
+    const sentence = Math.max(
+      endMatch,
+      prefix.lastIndexOf(". ") + 1,
+      prefix.lastIndexOf("! ") + 1,
+      prefix.lastIndexOf("? ") + 1
+    );
     const boundary = sentence >= 100 ? sentence : prefix.lastIndexOf(" ");
     result = boundary > 0 ? prefix.slice(0, boundary).trim() : "";
   }
+  const redactionCount = (result.match(/\[movie\]/g) ?? []).length;
+  // ponytail: over-redacted summaries (>4 tags or >=3 in <250 chars) lose readability; exclude synopsis.
+  if (redactionCount > 4 || (redactionCount >= 3 && result.length < 250)) return null;
   const final = ` ${normalized(result)} `;
   if ([...result].length < 100 || names.some(name => final.includes(` ${name} `))) return null;
   return result;
