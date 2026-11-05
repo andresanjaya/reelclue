@@ -6,6 +6,18 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
 
+type RoundPosterMeta = {
+  movie_id: number;
+  poster_path: string;
+  source_revision: string;
+};
+
+const roundMetaCache = new Map<string, RoundPosterMeta>();
+
+export function _resetRoundMetaCacheForTesting(): void {
+  roundMetaCache.clear();
+}
+
 export async function GET(request: Request, { params }: { params: Promise<{ id: string; roundId: string }> }) {
   const { id, roundId } = await params;
   const stageText = new URL(request.url).searchParams.get("stage");
@@ -21,22 +33,34 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
     const stage = Number(stageText);
     if (stage > round.hint_stage) return new Response(null, { status: 404, headers });
-    const db = createDbClient();
-    const { data: roundData, error: roundError } = await db.from("game_rounds")
-      .select("movie_id, catalog_version_id")
-      .eq("id", roundId).eq("session_id", id).maybeSingle();
-    if (roundError) {
-      return new Response(null, { status: 503, headers });
+
+    let meta = roundMetaCache.get(roundId);
+    if (!meta) {
+      const db = createDbClient();
+      const { data: roundData, error: roundError } = await db.from("game_rounds")
+        .select("movie_id, catalog_version_id")
+        .eq("id", roundId).eq("session_id", id).maybeSingle();
+      if (roundError) {
+        return new Response(null, { status: 503, headers });
+      }
+      if (!roundData) return new Response(null, { status: 404, headers });
+      const { data: movie, error: movieError } = await db.from("movies")
+        .select("poster_path, source_revision")
+        .eq("catalog_version_id", roundData.catalog_version_id)
+        .eq("tmdb_id", roundData.movie_id).maybeSingle();
+      if (movieError || !movie?.poster_path) {
+        return new Response(null, { status: 503, headers });
+      }
+      meta = {
+        movie_id: roundData.movie_id,
+        poster_path: movie.poster_path,
+        source_revision: movie.source_revision,
+      };
+      if (roundMetaCache.size >= 128) roundMetaCache.delete(roundMetaCache.keys().next().value!);
+      roundMetaCache.set(roundId, meta);
     }
-    if (!roundData) return new Response(null, { status: 404, headers });
-    const { data: movie, error: movieError } = await db.from("movies")
-      .select("poster_path, source_revision")
-      .eq("catalog_version_id", roundData.catalog_version_id)
-      .eq("tmdb_id", roundData.movie_id).maybeSingle();
-    if (movieError || !movie?.poster_path) {
-      return new Response(null, { status: 503, headers });
-    }
-    const bytes = await transformPoster(movie.poster_path, movie.source_revision, roundData.movie_id, stage);
+
+    const bytes = await transformPoster(meta.poster_path, meta.source_revision, meta.movie_id, stage);
     return new Response(new Uint8Array(bytes), { headers: { ...headers, "Content-Type": "image/webp" } });
   } catch (error) {
     if (error instanceof GameError) return new Response(null, { status: error.status, headers });

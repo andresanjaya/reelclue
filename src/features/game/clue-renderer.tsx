@@ -19,6 +19,7 @@ export function ClueRenderer({ clue }: { clue: SafeClue }) {
                 alt="Movie poster clue"
                 className="h-full w-full object-cover transition-opacity duration-300"
                 loading="eager"
+                decoding="async"
                 onError={() => setFailedUrl(clue.posterUrl)}
               />
             ) : (
