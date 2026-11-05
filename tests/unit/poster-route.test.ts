@@ -10,7 +10,7 @@ vi.mock("../../src/lib/server/game/session", () => ({
 }));
 vi.mock("../../src/lib/server/db/client", () => ({ createDbClient: dbClient }));
 vi.mock("../../src/lib/server/game/poster", () => ({ transformPoster: transform }));
-import { GET } from "../../src/app/api/games/[id]/rounds/[roundId]/poster/route";
+import { _resetRoundMetaCacheForTesting, GET } from "../../src/app/api/games/[id]/rounds/[roundId]/poster/route";
 
 const route = (stage = "0", cookie = "reelclue_player=token", roundId = "round") => GET(
   new Request(`http://localhost/api/games/session/rounds/${roundId}/poster?stage=${stage}`, { headers: { cookie } }),
@@ -20,6 +20,7 @@ const route = (stage = "0", cookie = "reelclue_player=token", roundId = "round")
 describe("private poster endpoint", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _resetRoundMetaCacheForTesting();
     safeSession.mockResolvedValue({ active_round: { id: "round", mode: "poster", state: "guessing", hint_stage: 1 } });
     const query = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn() };
     query.select.mockReturnValue(query);
