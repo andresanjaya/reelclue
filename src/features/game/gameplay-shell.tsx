@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   AlertTriangle,
+  ArrowRight,
   Clock,
   Film,
   Lightbulb,
   LogOut,
   RefreshCw,
-  RotateCcw,
   SkipForward,
   Trophy,
 } from "lucide-react";
@@ -32,6 +32,11 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
   const inFlightRef = useRef(false);
 
   // 1. Initial fetch & refresh/resume
+  const routerRef = useRef(router);
+  useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
+
   const loadSession = useCallback(async () => {
     dispatch({ type: "LOAD_START" });
     try {
@@ -48,6 +53,10 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
           });
           if (retryRes.ok) {
             const data = await retryRes.json();
+            if (data.state === "completed") {
+              routerRef.current.push(`/results/${sessionId}`);
+              return;
+            }
             dispatch({ type: "LOAD_SUCCESS", session: data });
             return;
           }
@@ -89,6 +98,10 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
       }
 
       const data = await res.json();
+      if (data.state === "completed") {
+        routerRef.current.push(`/results/${sessionId}`);
+        return;
+      }
       dispatch({ type: "LOAD_SUCCESS", session: data });
     } catch {
       dispatch({
@@ -114,6 +127,10 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
       });
       if (res.ok) {
         const data = await res.json();
+        if (data.state === "completed") {
+          routerRef.current.push(`/results/${sessionId}`);
+          return;
+        }
         dispatch({ type: "STALE_RELOAD", session: data });
       }
     } catch {
@@ -352,6 +369,10 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
       }
 
       const updatedSession = await res.json();
+      if (updatedSession.state === "completed") {
+        router.push(`/results/${sessionId}`);
+        return;
+      }
       dispatch({ type: "NEXT_SUCCESS", session: updatedSession });
     } catch {
       dispatch({
@@ -434,69 +455,28 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
     );
   }
 
-  // Game Completed view
+  // Game Completed view: redirect or link to dedicated results route
   if (state.status === "completed" || state.session?.state === "completed") {
-    const session = state.session!;
-    const maxScore = session.level === "easy" ? 1000 : session.level === "medium" ? 1500 : 2000;
-
     return (
-      <main className="mx-auto max-w-2xl space-y-8 px-4 py-12 text-center pb-[max(2rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/20 text-primary">
-          <Trophy aria-hidden="true" className="size-10" />
+      <main className="mx-auto max-w-md space-y-6 px-4 py-16 text-center">
+        <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/20 text-primary">
+          <Trophy aria-hidden="true" className="size-8" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             Game Complete!
           </h1>
-          <p className="text-muted-foreground">
-            You completed all 10 rounds of {session.mode} ({session.level.toUpperCase()}).
+          <p className="text-sm text-muted-foreground">
+            Redirecting to your game breakdown and final score…
           </p>
         </div>
-
-        <div className="rounded-xl border border-input bg-card p-6 sm:p-8 space-y-4">
-          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            Final Score
-          </p>
-          <p className="text-5xl font-black text-primary">
-            {session.score} <span className="text-2xl font-normal text-muted-foreground">/ {maxScore}</span>
-          </p>
-        </div>
-
-        {/* Round recap */}
-        {session.completed_rounds.length > 0 && (
-          <div className="space-y-3 text-left">
-            <h2 className="text-lg font-semibold text-foreground">Round Breakdown</h2>
-            <div className="divide-y divide-border/50 rounded-lg border border-input bg-card overflow-hidden">
-              {session.completed_rounds.map(cr => (
-                <div
-                  key={cr.ordinal}
-                  className="flex items-center justify-between p-3.5 text-sm"
-                >
-                  <span className="font-medium text-foreground">
-                    Round {cr.ordinal}: {cr.reveal.title}
-                  </span>
-                  <span className="text-muted-foreground">
-                    +{cr.reveal.score} pts ({cr.reveal.outcome})
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+        <div className="pt-2">
           <Link
-            href="/play"
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90"
+            href={`/results/${sessionId}`}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
           >
-            <RotateCcw aria-hidden="true" className="size-4" />
-            <span>Play Again</span>
-          </Link>
-          <Link
-            href="/"
-            className="inline-flex min-h-11 items-center justify-center rounded-md border border-input bg-secondary px-6 py-3 font-semibold text-secondary-foreground hover:bg-accent"
-          >
-            Home
+            <span>View Results</span>
+            <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
         </div>
       </main>

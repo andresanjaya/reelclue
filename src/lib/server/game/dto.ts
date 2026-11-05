@@ -1,5 +1,6 @@
 import "server-only";
 import { buildSafeClue, type ClueMode, type MovieDetails, type SafeClue } from "./clues.ts";
+import type { SessionLevel, SessionMode } from "./selection.ts";
 
 export type RoundState = "guessing" | "correct" | "skipped" | "exhausted";
 
@@ -97,14 +98,14 @@ export type SafeSessionDto = {
 export function serializeTerminalReveal(round: DbRound, movie: MovieDetails): TerminalReveal {
   return {
     tmdb_id: movie.tmdb_id,
-    title: movie.title,
-    original_title: movie.original_title,
-    release_year: movie.release_year,
-    genres: [...movie.genres],
-    directors: movie.directors.map(d => d.name),
-    cast: movie.cast_members.slice(0, 5).map(c => c.name),
-    synopsis: movie.sanitized_synopsis,
-    poster_path: movie.poster_path,
+    title: movie.title || "Unknown Title",
+    original_title: movie.original_title || movie.title || "Unknown Title",
+    release_year: typeof movie.release_year === "number" ? movie.release_year : 0,
+    genres: Array.isArray(movie.genres) ? [...movie.genres] : [],
+    directors: Array.isArray(movie.directors) ? movie.directors.map(d => d?.name).filter(Boolean) : [],
+    cast: Array.isArray(movie.cast_members) ? movie.cast_members.slice(0, 5).map(c => c?.name).filter(Boolean) : [],
+    synopsis: movie.sanitized_synopsis || null,
+    poster_path: movie.poster_path || null,
     outcome: round.state,
     score: round.score,
     hints_used: round.hint_stage,
@@ -152,5 +153,58 @@ export function serializeGameSession(
         ordinal: cr.round.ordinal,
         reveal: serializeTerminalReveal(cr.round, cr.movie),
       })),
+  };
+}
+
+export type GameResultsRoundSummary = {
+  ordinal: number;
+  mode: ClueMode;
+  reveal: TerminalReveal;
+};
+
+export type GameResultsDto = {
+  id: string;
+  mode: SessionMode;
+  level: SessionLevel;
+  state: "completed";
+  score: number;
+  max_score: number;
+  accuracy: number;
+  correct_count: number;
+  total_rounds: number;
+  total_hints_used: number;
+  total_wrong_attempts: number;
+  completed_at: string;
+  rounds: GameResultsRoundSummary[];
+};
+
+export function serializeGameResults(
+  session: DbSession,
+  roundPairs: Array<{ round: DbRound; movie: MovieDetails }>
+): GameResultsDto {
+  // ponytail: fixed 10-round max scores; upgrade when custom round counts or scoring bonuses added
+  const maxScore = session.level === "easy" ? 1000 : session.level === "medium" ? 1500 : 2000;
+  const correctCount = roundPairs.filter(rp => rp.round.state === "correct").length;
+  const totalHints = roundPairs.reduce((sum, rp) => sum + rp.round.hint_stage, 0);
+  const totalWrong = roundPairs.reduce((sum, rp) => sum + rp.round.wrong_attempts, 0);
+
+  return {
+    id: session.id,
+    mode: session.mode as SessionMode,
+    level: session.level as SessionLevel,
+    state: "completed",
+    score: session.score,
+    max_score: maxScore,
+    accuracy: Math.round((correctCount / roundPairs.length) * 100),
+    correct_count: correctCount,
+    total_rounds: roundPairs.length,
+    total_hints_used: totalHints,
+    total_wrong_attempts: totalWrong,
+    completed_at: session.completed_at ?? new Date().toISOString(),
+    rounds: roundPairs.map(rp => ({
+      ordinal: rp.round.ordinal,
+      mode: rp.round.mode,
+      reveal: serializeTerminalReveal(rp.round, rp.movie),
+    })),
   };
 }
