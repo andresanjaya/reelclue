@@ -107,6 +107,7 @@ export type SafeClue =
   | {
       mode: "cast";
       director: string;
+      directors?: string[];
       cast?: string[];
       releaseYear?: number;
     }
@@ -173,15 +174,30 @@ export function buildSafeClue(
     }
 
     case "cast": {
+      // ponytail: deduplicates top cast and directors by ID/trimmed name; upgrade to disambiguated role metadata when billing roles added
+      const distinctDirectors = Array.from(
+        new Map(movie.directors.map(d => [d.id || d.name, d.name.trim()])).values()
+      ).filter(Boolean);
+      const seenCast = new Set<number | string>();
+      const distinctCast: string[] = [];
+      for (const actor of movie.cast_members) {
+        const key = actor.id || actor.name.trim();
+        if (!actor.name?.trim() || seenCast.has(key)) continue;
+        seenCast.add(key);
+        distinctCast.push(actor.name.trim());
+      }
+      if (distinctDirectors.length === 0 || distinctCast.length < 3) {
+        throw new Error("Movie is not eligible for Director & Cast mode");
+      }
       const clue: SafeClue = {
         mode: "cast",
-        director: primaryDirector,
+        director: distinctDirectors.join(", "),
+        directors: distinctDirectors,
       };
-      const castNames = movie.cast_members.map(c => c.name);
-      if (stage >= 1) clue.cast = castNames.slice(0, 1);
-      if (stage >= 2) clue.cast = castNames.slice(0, 2);
+      if (stage >= 1) clue.cast = distinctCast.slice(0, 1);
+      if (stage >= 2) clue.cast = distinctCast.slice(0, 2);
       if (stage >= 3) {
-        clue.cast = castNames.slice(0, 3);
+        clue.cast = distinctCast.slice(0, 3);
         clue.releaseYear = movie.release_year;
       }
       return clue;

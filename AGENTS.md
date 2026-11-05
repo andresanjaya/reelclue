@@ -36,3 +36,13 @@ Documentation and backlog planning only. RC-001 requires review/merge before RC-
 - Use focused Next.js/shadcn/Tailwind guidance as appropriate, verify recommendation fit, and keep small fixes scoped. Backend-only tickets do not need visual searches.
 - Preserve existing reviewed theme decisions and installed framework versions. No automatic --force regeneration, new styling system, unrelated UI libraries or product-rule changes.
 - Every UI PR includes actual mobile/desktop and keyboard/focus/state validation; generated guidance alone is not proof of quality. The one-ticket review/merge gate remains mandatory.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
