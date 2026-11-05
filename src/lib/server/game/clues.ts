@@ -73,15 +73,17 @@ export function maskTitleByGrapheme(title: string, seed: string, stage: number):
 export function clipSynopsis(synopsis: string, maxLength = 600): string {
   if (synopsis.length <= maxLength) return synopsis;
   const slice = synopsis.slice(0, maxLength);
+  if (/[.!?]$/.test(slice)) return slice;
   const sentenceEnd = Math.max(slice.lastIndexOf(". "), slice.lastIndexOf("! "), slice.lastIndexOf("? "));
-  if (sentenceEnd >= 200) {
+  if (sentenceEnd >= 100) {
     return slice.slice(0, sentenceEnd + 1);
   }
-  const lastSpace = slice.lastIndexOf(" ");
-  if (lastSpace >= 200) {
-    return slice.slice(0, lastSpace) + "...";
+  const maxWordSlice = synopsis.slice(0, maxLength - 3);
+  const lastSpace = maxWordSlice.lastIndexOf(" ");
+  if (lastSpace >= 100) {
+    return maxWordSlice.slice(0, lastSpace) + "...";
   }
-  return slice + "...";
+  return maxWordSlice + "...";
 }
 
 export type SafeClue =
@@ -151,7 +153,15 @@ export function buildSafeClue(
     }
 
     case "synopsis": {
-      const baseSynopsis = clipSynopsis(movie.sanitized_synopsis ?? "");
+      if (
+        !movie.sanitized_synopsis ||
+        movie.sanitized_synopsis.trim().length < 100 ||
+        movie.directors.length === 0 ||
+        movie.genres.length === 0
+      ) {
+        throw new Error("Movie is not eligible for Synopsis mode");
+      }
+      const baseSynopsis = clipSynopsis(movie.sanitized_synopsis);
       const clue: SafeClue = {
         mode: "synopsis",
         synopsis: baseSynopsis,
