@@ -101,25 +101,36 @@ export function ClueRenderer({ clue }: { clue: SafeClue }) {
         </div>
       );
 
-    case "cast":
+    case "cast": {
+      const isCoDirected = clue.directors && clue.directors.length > 1;
       return (
-        <div className="space-y-4 rounded-xl border border-input bg-card/60 p-5 sm:p-6">
+        <div className="w-full min-w-0 space-y-4 rounded-xl border border-input bg-card/60 p-5 sm:p-6">
           <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-primary uppercase">
             <Users aria-hidden="true" className="size-4" />
             <span>Director &amp; Cast</span>
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground uppercase">Director</p>
-            <p className="text-xl font-bold text-foreground">{clue.director}</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase">
+              {isCoDirected ? "Directors" : "Director"}
+            </p>
+            <p className="w-full min-w-0 wrap-anywhere text-xl font-bold text-foreground">
+              {clue.director}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Several films can fit these early credits. Only the chosen movie is accepted.
+            </p>
           </div>
           {clue.cast && clue.cast.length > 0 && (
             <div className="space-y-2 border-t border-border/50 pt-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Cast Members</p>
-              <ul className="space-y-1">
-                {clue.cast.map(actor => (
-                  <li key={actor} className="flex items-center gap-2 font-medium text-foreground">
-                    <User aria-hidden="true" className="size-4 text-primary" />
-                    <span>{actor}</span>
+              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                Billed Cast Members
+              </p>
+              <ul className="space-y-1.5" aria-label="Billed Cast Members">
+                {clue.cast.map((actor, idx) => (
+                  <li key={`${actor}-${idx}`} className="flex w-full min-w-0 items-center gap-2 font-medium text-foreground">
+                    <User aria-hidden="true" className="size-4 shrink-0 text-primary" />
+                    <span className="shrink-0 text-xs font-normal text-muted-foreground">#{idx + 1}</span>
+                    <span className="min-w-0 wrap-anywhere">{actor}</span>
                   </li>
                 ))}
               </ul>
@@ -134,6 +145,7 @@ export function ClueRenderer({ clue }: { clue: SafeClue }) {
           )}
         </div>
       );
+    }
 
     case "genre":
       return (
