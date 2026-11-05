@@ -50,6 +50,12 @@ export default function Home() {
           </Link>
           <div className="flex items-center gap-2">
             <Link
+              href="/about"
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+            >
+              <span>About</span>
+            </Link>
+            <Link
               href="/stats"
               className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
             >
@@ -213,6 +219,12 @@ export default function Home() {
               className="hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               Statistics
+            </Link>
+            <Link
+              href="/about"
+              className="hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              About
             </Link>
           </div>
           <p>ReelClue — A mobile-first movie guessing playground.</p>
