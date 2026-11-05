@@ -23,6 +23,7 @@ describe("poster pipeline", () => {
     expect(first.equals(original)).toBe(false);
     expect(first.equals(clearer)).toBe(false);
     expect(clearer.equals(third)).toBe(true);
+    expect(fetcher).toHaveBeenCalledTimes(1);
     expect(fetcher).toHaveBeenCalledWith("https://image.tmdb.org/t/p/w500/poster.png", expect.objectContaining({ redirect: "error", cache: "no-store" }));
   });
 
