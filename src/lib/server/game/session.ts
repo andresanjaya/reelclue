@@ -29,13 +29,15 @@ export class GameError extends Error {
   readonly status: number;
   readonly code: string;
   readonly retryable: boolean;
+  readonly retryAfter?: number;
 
-  constructor(status: number, code: string, message: string, retryable = false) {
+  constructor(status: number, code: string, message: string, retryable = false, retryAfter?: number) {
     super(message);
     this.name = "GameError";
     this.status = status;
     this.code = code;
     this.retryable = retryable;
+    this.retryAfter = retryAfter;
   }
 }
 

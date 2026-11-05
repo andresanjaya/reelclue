@@ -5,12 +5,19 @@ import {
   PLAYER_COOKIE_NAME,
   validateOrigin,
 } from "@/lib/server/game/session";
+import { enforceRateLimits, RATE_LIMIT_POLICIES } from "@/lib/server/security/rate-limit";
+import { createSafeHeaders, toSafeErrorResponse } from "@/lib/server/security/response";
+import { generateRequestId, logTelemetry } from "@/lib/server/security/telemetry";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+
   try {
     validateOrigin(request);
+    await enforceRateLimits(request, RATE_LIMIT_POLICIES.player);
 
     const cookieHeader = request.headers.get("cookie") ?? "";
     const match = cookieHeader.match(new RegExp(`(?:^|; )${PLAYER_COOKIE_NAME}=([^;]*)`));
@@ -22,7 +29,7 @@ export async function POST(request: Request) {
       { ok: true },
       {
         status: player.isNew ? 201 : 200,
-        headers: { "Cache-Control": "no-store, private" },
+        headers: createSafeHeaders(requestId),
       }
     );
 
@@ -36,18 +43,26 @@ export async function POST(request: Request) {
       });
     }
 
+    logTelemetry({
+      requestId,
+      routeClass: "api.player",
+      status: player.isNew ? 201 : 200,
+      durationMs: Date.now() - start,
+    });
+
     return response;
   } catch (err) {
-    if (err instanceof GameError) {
-      return NextResponse.json(
-        { error: { code: err.code, message: err.message, retryable: err.retryable } },
-        { status: err.status, headers: { "Cache-Control": "no-store, private" } }
-      );
-    }
-    const message = err instanceof Error ? err.message : "Internal error";
-    return NextResponse.json(
-      { error: { code: "INTERNAL_ERROR", message, retryable: false } },
-      { status: 500, headers: { "Cache-Control": "no-store, private" } }
-    );
+    const errorStatus = err instanceof GameError ? err.status : 500;
+    const errorCode = err instanceof GameError ? err.code : "INTERNAL_ERROR";
+
+    logTelemetry({
+      requestId,
+      routeClass: "api.player",
+      status: errorStatus,
+      durationMs: Date.now() - start,
+      errorCode,
+    });
+
+    return toSafeErrorResponse(err, requestId);
   }
 }

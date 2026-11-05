@@ -1,6 +1,8 @@
 import { createDbClient } from "@/lib/server/db/client";
 import { fetchSafeSession, GameError, hashToken, PLAYER_COOKIE_NAME } from "@/lib/server/game/session";
 import { transformPoster } from "@/lib/server/game/poster";
+import { enforceRateLimits, RATE_LIMIT_POLICIES } from "@/lib/server/security/rate-limit";
+import { generateRequestId, logTelemetry } from "@/lib/server/security/telemetry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +21,8 @@ export function _resetRoundMetaCacheForTesting(): void {
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string; roundId: string }> }) {
+  const start = Date.now();
+  const requestId = generateRequestId();
   const { id, roundId } = await params;
   const stageText = new URL(request.url).searchParams.get("stage");
   if (!stageText || !/^[0-3]$/.test(stageText)) return new Response(null, { status: 400, headers });
@@ -34,6 +38,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const stage = Number(stageText);
     if (stage > round.hint_stage) return new Response(null, { status: 404, headers });
 
+    await enforceRateLimits(request, RATE_LIMIT_POLICIES.poster, token);
+
     let meta = roundMetaCache.get(roundId);
     if (!meta) {
       const db = createDbClient();
@@ -41,7 +47,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         .select("movie_id, catalog_version_id")
         .eq("id", roundId).eq("session_id", id).maybeSingle();
       if (roundError) {
-        return new Response(null, { status: 503, headers });
+        return new Response(null, { status: 503, headers: { ...headers, "Retry-After": "5" } });
       }
       if (!roundData) return new Response(null, { status: 404, headers });
       const { data: movie, error: movieError } = await db.from("movies")
@@ -49,7 +55,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         .eq("catalog_version_id", roundData.catalog_version_id)
         .eq("tmdb_id", roundData.movie_id).maybeSingle();
       if (movieError || !movie?.poster_path) {
-        return new Response(null, { status: 503, headers });
+        return new Response(null, { status: 503, headers: { ...headers, "Retry-After": "5" } });
       }
       meta = {
         movie_id: roundData.movie_id,
@@ -61,9 +67,36 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
 
     const bytes = await transformPoster(meta.poster_path, meta.source_revision, meta.movie_id, stage);
-    return new Response(new Uint8Array(bytes), { headers: { ...headers, "Content-Type": "image/webp" } });
+
+    logTelemetry({
+      requestId,
+      routeClass: "api.games.poster",
+      status: 200,
+      durationMs: Date.now() - start,
+    });
+
+    return new Response(new Uint8Array(bytes), { headers: { ...headers, "Content-Type": "image/webp", "X-Request-ID": requestId } });
   } catch (error) {
-    if (error instanceof GameError) return new Response(null, { status: error.status, headers });
-    return new Response(null, { status: 503, headers: { ...headers, "Retry-After": "5" } });
+    const errorStatus = error instanceof GameError ? error.status : 503;
+    const errorCode = error instanceof GameError ? error.code : "INTERNAL_ERROR";
+
+    logTelemetry({
+      requestId,
+      routeClass: "api.games.poster",
+      status: errorStatus,
+      durationMs: Date.now() - start,
+      errorCode,
+    });
+
+    if (error instanceof GameError) {
+      const errHeaders: Record<string, string> = { ...headers, "X-Request-ID": requestId };
+      if (error.retryAfter !== undefined) {
+        errHeaders["Retry-After"] = String(error.retryAfter);
+      } else if (error.status === 503) {
+        errHeaders["Retry-After"] = "5";
+      }
+      return new Response(null, { status: error.status, headers: errHeaders });
+    }
+    return new Response(null, { status: 503, headers: { ...headers, "Retry-After": "5", "X-Request-ID": requestId } });
   }
 }
