@@ -1,7 +1,11 @@
+"use client";
+
+import { useEffect } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
   ArrowRight,
+  BarChart3,
   CheckCircle2,
   Clock,
   ExternalLink,
@@ -12,12 +16,17 @@ import {
   XCircle,
 } from "lucide-react";
 import type { GameResultsDto } from "@/lib/server/game/dto";
+import { recordCompletedSession } from "@/lib/client/storage";
 import { modes, type Level } from "./components";
 
 export function ResultsView({ results }: { results: GameResultsDto }) {
   const modeObj = modes.find(m => m.id === results.mode);
   const modeLabel = modeObj?.label ?? results.mode;
   const levelLabel = (results.level.charAt(0).toUpperCase() + results.level.slice(1)) as Level;
+
+  useEffect(() => {
+    recordCompletedSession(results);
+  }, [results]);
 
   return (
     <main className="mx-auto max-w-3xl space-y-8 px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
@@ -115,6 +124,14 @@ export function ResultsView({ results }: { results: GameResultsDto }) {
             className="inline-flex min-h-11 items-center justify-center rounded-md border border-input bg-secondary px-5 py-3 font-semibold text-secondary-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
           >
             Change Mode & Level
+          </Link>
+
+          <Link
+            href="/stats"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-input bg-card px-5 py-3 font-semibold text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+          >
+            <BarChart3 aria-hidden="true" className="size-4 text-primary" />
+            <span>View Stats</span>
           </Link>
 
           <Link

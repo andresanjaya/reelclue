@@ -10,6 +10,7 @@ import {
 import type { MovieDetails } from "../../src/lib/server/game/clues";
 import { ResultsIncompleteView, ResultsView } from "../../src/features/game/results-view";
 import { PlaySetup } from "../../src/features/game/play-setup";
+import { loadLocalData } from "../../src/lib/client/storage";
 
 vi.mock("server-only", () => ({}));
 
@@ -228,6 +229,19 @@ describe("ResultsView component", () => {
     const playAgainLinks = screen.getAllByRole("link", { name: /Play Again/i });
     expect(playAgainLinks.length).toBeGreaterThanOrEqual(1);
     expect(playAgainLinks[0]).toHaveAttribute("href", "/play?mode=mixed&difficulty=easy");
+  });
+
+  it("includes View Stats link and records results into local storage deduplicated", () => {
+    render(<ResultsView results={sampleResults} />);
+
+    const statsLink = screen.getByRole("link", { name: /View Stats/i });
+    expect(statsLink).toHaveAttribute("href", "/stats");
+
+    // Local storage should now contain the session result
+    const local = loadLocalData();
+    expect(local.completed_session_ids).toContain(sampleResults.id);
+    expect(local.stats["mixed:easy"]).toBeDefined();
+    expect(local.stats["mixed:easy"].games_played).toBe(1);
   });
 
   it("renders ResultsIncompleteView when session is incomplete", () => {

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Film, HelpCircle, Lightbulb, Play, Trophy } from "lucide-react";
+import { BarChart3, Film, HelpCircle, Lightbulb, Play, Trophy } from "lucide-react";
 import { modes } from "@/features/game/components";
 
 export const metadata: Metadata = {
@@ -48,13 +48,22 @@ export default function Home() {
             <Film aria-hidden="true" className="size-6" />
             <span>ReelClue</span>
           </Link>
-          <Link
-            href="/play"
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-          >
-            <Play aria-hidden="true" className="size-4 fill-current" />
-            <span>Play Now</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/stats"
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+            >
+              <BarChart3 aria-hidden="true" className="size-4" />
+              <span>Stats</span>
+            </Link>
+            <Link
+              href="/play"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+            >
+              <Play aria-hidden="true" className="size-4 fill-current" />
+              <span>Play Now</span>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -191,7 +200,21 @@ export default function Home() {
 
       {/* Footer with TMDB attribution */}
       <footer className="border-t border-border/50 py-8 text-center text-xs text-muted-foreground">
-        <div className="mx-auto max-w-280 space-y-2 px-4">
+        <div className="mx-auto max-w-280 space-y-3 px-4">
+          <div className="flex justify-center gap-6 text-sm text-foreground">
+            <Link
+              href="/play"
+              className="hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              Play
+            </Link>
+            <Link
+              href="/stats"
+              className="hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              Statistics
+            </Link>
+          </div>
           <p>ReelClue — A mobile-first movie guessing playground.</p>
           <p>
             This product uses the TMDB API but is not endorsed or certified by TMDB.

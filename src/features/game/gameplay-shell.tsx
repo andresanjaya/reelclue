@@ -25,6 +25,7 @@ import { getHintDetails } from "./hint-helpers";
 import { SearchableAnswerCombobox } from "./answer-combobox";
 import { TerminalRevealView } from "./terminal-reveal-view";
 import type { AmbiguousChoice } from "@/lib/server/game/dto";
+import { markActiveSessionCompleted, saveActiveSession } from "@/lib/client/storage";
 
 export function GameplayShell({ sessionId }: { sessionId: string }) {
   const router = useRouter();
@@ -54,9 +55,11 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
           if (retryRes.ok) {
             const data = await retryRes.json();
             if (data.state === "completed") {
+              markActiveSessionCompleted(sessionId);
               routerRef.current.push(`/results/${sessionId}`);
               return;
             }
+            saveActiveSession({ id: data.id, mode: data.mode, level: data.level });
             dispatch({ type: "LOAD_SUCCESS", session: data });
             return;
           }
@@ -73,6 +76,7 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
       }
 
       if (res.status === 410) {
+        markActiveSessionCompleted(sessionId);
         dispatch({
           type: "LOAD_ERROR",
           error: {
@@ -99,9 +103,11 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
 
       const data = await res.json();
       if (data.state === "completed") {
+        markActiveSessionCompleted(sessionId);
         routerRef.current.push(`/results/${sessionId}`);
         return;
       }
+      saveActiveSession({ id: data.id, mode: data.mode, level: data.level });
       dispatch({ type: "LOAD_SUCCESS", session: data });
     } catch {
       dispatch({
@@ -128,6 +134,7 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
       if (res.ok) {
         const data = await res.json();
         if (data.state === "completed") {
+          markActiveSessionCompleted(sessionId);
           routerRef.current.push(`/results/${sessionId}`);
           return;
         }
@@ -370,6 +377,7 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
 
       const updatedSession = await res.json();
       if (updatedSession.state === "completed") {
+        markActiveSessionCompleted(sessionId);
         router.push(`/results/${sessionId}`);
         return;
       }
