@@ -44,7 +44,7 @@ export function maskTitleByGrapheme(title: string, seed: string, stage: number):
   });
 
   const n = maskableIndices.length;
-  if (n === 0) return title;
+  if (n < 5) throw new Error("Title is not eligible for Missing Title mode");
 
   // PRD fraction rules: 0.35, 0.50, 0.65, 0.80
   const fractions = [0.35, 0.5, 0.65, 0.8];
