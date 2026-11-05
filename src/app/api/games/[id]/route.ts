@@ -5,6 +5,9 @@ import {
   hashToken,
   PLAYER_COOKIE_NAME,
 } from "@/lib/server/game/session";
+import { enforceRateLimits, RATE_LIMIT_POLICIES } from "@/lib/server/security/rate-limit";
+import { createSafeHeaders, toSafeErrorResponse } from "@/lib/server/security/response";
+import { generateRequestId, logTelemetry } from "@/lib/server/security/telemetry";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +15,9 @@ export async function GET(
   request: Request,
   props: { params: Promise<{ id: string }> }
 ) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+
   try {
     const { id } = await props.params;
 
@@ -20,29 +26,36 @@ export async function GET(
     const playerToken = match ? match[1] : undefined;
 
     if (!playerToken) {
-      return NextResponse.json(
-        { error: { code: "UNAUTHORIZED", message: "Player identity cookie required", retryable: false } },
-        { status: 401, headers: { "Cache-Control": "no-store, private" } }
-      );
+      throw new GameError(401, "UNAUTHORIZED", "Player identity cookie required", false);
     }
+
+    await enforceRateLimits(request, RATE_LIMIT_POLICIES.sessionGet, playerToken);
 
     const session = await fetchSafeSession(id, hashToken(playerToken));
 
+    logTelemetry({
+      requestId,
+      routeClass: "api.games.get",
+      status: 200,
+      durationMs: Date.now() - start,
+    });
+
     return NextResponse.json(session, {
       status: 200,
-      headers: { "Cache-Control": "no-store, private" },
+      headers: createSafeHeaders(requestId),
     });
   } catch (err) {
-    if (err instanceof GameError) {
-      return NextResponse.json(
-        { error: { code: err.code, message: err.message, retryable: err.retryable } },
-        { status: err.status, headers: { "Cache-Control": "no-store, private" } }
-      );
-    }
-    const message = err instanceof Error ? err.message : "Internal error";
-    return NextResponse.json(
-      { error: { code: "INTERNAL_ERROR", message, retryable: false } },
-      { status: 500, headers: { "Cache-Control": "no-store, private" } }
-    );
+    const errorStatus = err instanceof GameError ? err.status : 500;
+    const errorCode = err instanceof GameError ? err.code : "INTERNAL_ERROR";
+
+    logTelemetry({
+      requestId,
+      routeClass: "api.games.get",
+      status: errorStatus,
+      durationMs: Date.now() - start,
+      errorCode,
+    });
+
+    return toSafeErrorResponse(err, requestId);
   }
 }

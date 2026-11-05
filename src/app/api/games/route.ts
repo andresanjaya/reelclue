@@ -6,6 +6,10 @@ import {
   PLAYER_COOKIE_NAME,
   validateOrigin,
 } from "@/lib/server/game/session";
+import { readBoundedJson } from "@/lib/server/security/body";
+import { enforceRateLimits, RATE_LIMIT_POLICIES } from "@/lib/server/security/rate-limit";
+import { createSafeHeaders, toSafeErrorResponse } from "@/lib/server/security/response";
+import { generateRequestId, logTelemetry } from "@/lib/server/security/telemetry";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +21,9 @@ const createGameSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const start = Date.now();
+  const requestId = generateRequestId();
+
   try {
     validateOrigin(request);
 
@@ -25,18 +32,19 @@ export async function POST(request: Request) {
     const playerToken = match ? match[1] : undefined;
 
     if (!playerToken) {
-      return NextResponse.json(
-        { error: { code: "UNAUTHORIZED", message: "Player identity cookie required", retryable: false } },
-        { status: 401, headers: { "Cache-Control": "no-store, private" } }
-      );
+      throw new GameError(401, "UNAUTHORIZED", "Player identity cookie required", false);
     }
 
-    const json = await request.json().catch(() => null);
+    await enforceRateLimits(request, RATE_LIMIT_POLICIES.sessionCreate, playerToken);
+
+    const json = await readBoundedJson(request);
     const parsed = createGameSchema.safeParse(json);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0]?.message ?? "Invalid request", retryable: false } },
-        { status: 400, headers: { "Cache-Control": "no-store, private" } }
+      throw new GameError(
+        400,
+        "VALIDATION_ERROR",
+        parsed.error.issues[0]?.message ?? "Invalid request",
+        false
       );
     }
 
@@ -48,21 +56,29 @@ export async function POST(request: Request) {
       recentMovieIds: parsed.data.recentMovieIds,
     });
 
+    logTelemetry({
+      requestId,
+      routeClass: "api.games.create",
+      status: 201,
+      durationMs: Date.now() - start,
+    });
+
     return NextResponse.json(session, {
       status: 201,
-      headers: { "Cache-Control": "no-store, private" },
+      headers: createSafeHeaders(requestId),
     });
   } catch (err) {
-    if (err instanceof GameError) {
-      return NextResponse.json(
-        { error: { code: err.code, message: err.message, retryable: err.retryable } },
-        { status: err.status, headers: { "Cache-Control": "no-store, private" } }
-      );
-    }
-    const message = err instanceof Error ? err.message : "Internal error";
-    return NextResponse.json(
-      { error: { code: "INTERNAL_ERROR", message, retryable: false } },
-      { status: 500, headers: { "Cache-Control": "no-store, private" } }
-    );
+    const errorStatus = err instanceof GameError ? err.status : 500;
+    const errorCode = err instanceof GameError ? err.code : "INTERNAL_ERROR";
+
+    logTelemetry({
+      requestId,
+      routeClass: "api.games.create",
+      status: errorStatus,
+      durationMs: Date.now() - start,
+      errorCode,
+    });
+
+    return toSafeErrorResponse(err, requestId);
   }
 }
