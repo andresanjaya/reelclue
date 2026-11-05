@@ -520,7 +520,12 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
   const attemptsRemaining = Math.max(0, 3 - activeRound.wrong_attempts);
   const hintInfo = getHintDetails(activeRound.mode, activeRound.hint_stage);
   const modeObj = modes.find(m => m.id === session.mode);
-  const modeLabel = modeObj?.label ?? session.mode;
+  const currentRoundModeObj = modes.find(m => m.id === activeRound.mode);
+  const currentRoundModeLabel = currentRoundModeObj?.label ?? activeRound.mode;
+  const modeLabel =
+    session.mode === "mixed"
+      ? `Mixed · ${currentRoundModeLabel}`
+      : (modeObj?.label ?? session.mode);
   const levelCapitalized = (session.level.charAt(0).toUpperCase() + session.level.slice(1)) as Level;
 
   return (

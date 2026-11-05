@@ -183,9 +183,31 @@ export async function createGameSession(opts: {
   }));
 
   // 3. Select 10 rounds
+  let recentMovieIds = opts.recentMovieIds;
+  if (!recentMovieIds) {
+    const { data: player } = await db
+      .from("anonymous_players")
+      .select("id")
+      .eq("token_hash", playerTokenHash)
+      .maybeSingle();
+
+    if (player) {
+      const { data: recentRounds } = await db
+        .from("game_rounds")
+        .select("movie_id, game_sessions!inner(player_id, created_at)")
+        .eq("game_sessions.player_id", player.id)
+        .order("game_sessions(created_at)", { ascending: false })
+        .limit(30);
+
+      if (recentRounds) {
+        recentMovieIds = recentRounds.map((r: { movie_id: number }) => r.movie_id);
+      }
+    }
+  }
+
   let selectedRounds;
   try {
-    selectedRounds = selectGameRounds(pool, opts.mode, opts.recentMovieIds ?? []);
+    selectedRounds = selectGameRounds(pool, opts.mode, recentMovieIds ?? []);
   } catch (err) {
     if (err instanceof CatalogShortageError) {
       throw new GameError(400, "CATALOG_SHORTAGE", err.message);
