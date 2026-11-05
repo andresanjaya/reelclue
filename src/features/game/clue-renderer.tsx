@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Film, Image as ImageIcon, Sparkles, User, Users } from "lucide-react";
+import { Calendar, Film, Globe, Image as ImageIcon, Sparkles, User, Users } from "lucide-react";
 import type { SafeClue } from "@/lib/server/game/clues";
 
 export function ClueRenderer({ clue }: { clue: SafeClue }) {
@@ -147,55 +147,71 @@ export function ClueRenderer({ clue }: { clue: SafeClue }) {
       );
     }
 
-    case "genre":
+    case "genre": {
+      const isCoDirected = clue.directors && clue.directors.length > 1;
+      const languageDisplay =
+        clue.originalLanguageLabel && clue.originalLanguageLabel !== clue.originalLanguage?.toUpperCase()
+          ? `${clue.originalLanguageLabel} (${clue.originalLanguage?.toUpperCase()})`
+          : clue.originalLanguageLabel || clue.originalLanguage?.toUpperCase();
+
       return (
-        <div className="space-y-4 rounded-xl border border-input bg-card/60 p-5 sm:p-6">
+        <div className="w-full min-w-0 space-y-4 rounded-xl border border-input bg-card/60 p-5 sm:p-6">
           <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-primary uppercase">
             <Film aria-hidden="true" className="size-4" />
             <span>Genre Detective</span>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <p className="text-xs font-semibold text-muted-foreground uppercase">Genres</p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" aria-label="Genres">
               {clue.genres.map(g => (
                 <span
                   key={g}
-                  className="rounded-md border border-primary/40 bg-primary/10 px-3 py-1 text-sm font-semibold text-primary"
+                  className="rounded-md border border-primary/40 bg-primary/10 px-3 py-1 text-sm font-semibold text-primary wrap-anywhere"
                 >
                   {g}
                 </span>
               ))}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Several films can fit these early clues. Only the chosen movie is accepted.
+            </p>
           </div>
           <div className="space-y-1 border-t border-border/50 pt-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase">Decade</p>
             <p className="text-lg font-medium text-foreground">{clue.decade}</p>
           </div>
           {(clue.originalLanguage || clue.director || clue.leadActor || clue.releaseYear) && (
-            <div className="flex flex-wrap gap-2 border-t border-border/50 pt-3 text-xs">
-              {clue.originalLanguage && (
-                <span className="rounded-md bg-secondary px-2.5 py-1 font-medium text-secondary-foreground">
-                  Language: {clue.originalLanguage.toUpperCase()}
+            <div className="flex flex-wrap gap-2 border-t border-border/50 pt-3 text-xs" aria-label="Progressive Clues">
+              {languageDisplay && (
+                <span className="flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1 font-medium text-secondary-foreground wrap-anywhere">
+                  <Globe aria-hidden="true" className="size-3.5 shrink-0 text-primary" />
+                  <span>Language: {languageDisplay}</span>
                 </span>
               )}
               {clue.director && (
-                <span className="rounded-md bg-secondary px-2.5 py-1 font-medium text-secondary-foreground">
-                  Director: {clue.director}
+                <span className="flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1 font-medium text-secondary-foreground wrap-anywhere">
+                  <User aria-hidden="true" className="size-3.5 shrink-0 text-primary" />
+                  <span>
+                    {isCoDirected ? "Directors" : "Director"}: {clue.director}
+                  </span>
                 </span>
               )}
               {clue.leadActor && (
-                <span className="rounded-md bg-secondary px-2.5 py-1 font-medium text-secondary-foreground">
-                  Lead: {clue.leadActor}
+                <span className="flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1 font-medium text-secondary-foreground wrap-anywhere">
+                  <User aria-hidden="true" className="size-3.5 shrink-0 text-primary" />
+                  <span>Lead: {clue.leadActor}</span>
                 </span>
               )}
               {clue.releaseYear && (
-                <span className="rounded-md bg-secondary px-2.5 py-1 font-medium text-secondary-foreground">
-                  Year: {clue.releaseYear}
+                <span className="flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1 font-medium text-secondary-foreground wrap-anywhere">
+                  <Calendar aria-hidden="true" className="size-3.5 shrink-0 text-primary" />
+                  <span>Year: {clue.releaseYear}</span>
                 </span>
               )}
             </div>
           )}
         </div>
       );
+    }
   }
 }

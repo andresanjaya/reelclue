@@ -116,10 +116,37 @@ export type SafeClue =
       genres: string[];
       decade: string;
       originalLanguage?: string;
+      originalLanguageLabel?: string;
       director?: string;
+      directors?: string[];
       leadActor?: string;
       releaseYear?: number;
     };
+
+let languageDisplayNames: Intl.DisplayNames | null = null;
+function getDisplayNames(): Intl.DisplayNames | null {
+  if (!languageDisplayNames && typeof Intl !== "undefined" && Intl.DisplayNames) {
+    try {
+      languageDisplayNames = new Intl.DisplayNames(["en"], { type: "language" });
+    } catch {
+      languageDisplayNames = null;
+    }
+  }
+  return languageDisplayNames;
+}
+
+export function getLanguageLabel(code: string): string {
+  const normalized = code.toLowerCase().trim();
+  if (normalized === "cn") return "Cantonese";
+  try {
+    const dn = getDisplayNames();
+    const name = dn?.of(normalized);
+    if (name && name.toLowerCase() !== normalized) return name;
+  } catch {
+    // fallback
+  }
+  return normalized.toUpperCase();
+}
 
 export function buildSafeClue(
   mode: ClueMode,
@@ -204,15 +231,51 @@ export function buildSafeClue(
     }
 
     case "genre": {
+      // ponytail: require minimum genres/directors/cast/language; upgrade to rich subgenre taxonomies if needed
+      if (
+        !movie.genres ||
+        movie.genres.length === 0 ||
+        !movie.release_year ||
+        !movie.directors ||
+        movie.directors.length === 0 ||
+        !movie.cast_members ||
+        movie.cast_members.length === 0 ||
+        !movie.original_language ||
+        !movie.original_language.trim()
+      ) {
+        throw new Error("Movie is not eligible for Genre Detective mode");
+      }
+
+      const distinctDirectors = Array.from(
+        new Map(movie.directors.map(d => [d.id || d.name, d.name.trim()])).values()
+      ).filter(Boolean);
+      if (distinctDirectors.length === 0) {
+        throw new Error("Movie is not eligible for Genre Detective mode");
+      }
+
+      const distinctCast = Array.from(
+        new Map(movie.cast_members.map(c => [c.id || c.name, c.name.trim()])).values()
+      ).filter(Boolean);
+      if (distinctCast.length === 0) {
+        throw new Error("Movie is not eligible for Genre Detective mode");
+      }
+
       const clue: SafeClue = {
         mode: "genre",
         genres: movie.genres.slice(0, 3),
         decade,
       };
-      if (stage >= 1) clue.originalLanguage = movie.original_language;
-      if (stage >= 2) clue.director = primaryDirector;
+
+      if (stage >= 1) {
+        clue.originalLanguage = movie.original_language;
+        clue.originalLanguageLabel = getLanguageLabel(movie.original_language);
+      }
+      if (stage >= 2) {
+        clue.director = distinctDirectors.join(", ");
+        clue.directors = distinctDirectors;
+      }
       if (stage >= 3) {
-        clue.leadActor = movie.cast_members[0]?.name;
+        clue.leadActor = distinctCast[0];
         clue.releaseYear = movie.release_year;
       }
       return clue;
