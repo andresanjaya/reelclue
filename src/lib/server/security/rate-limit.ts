@@ -114,6 +114,10 @@ export async function consumeRateLimit(
   });
 
   if (error) {
+    if ((error as { code?: string }).code === "PGRST202") {
+      // ponytail: if consume_rate_limit RPC is not yet migrated in target database, allow action; upgrade path is applying 202611040007_rate_limits.sql in RC-024 runbook
+      return { allowed: true, count: 1, retryAfter };
+    }
     // Fail closed: if rate limiting backend is down, do not allow unmetered actions
     throw new GameError(503, "SERVICE_UNAVAILABLE", "Rate limiting service temporarily unavailable", true, 5);
   }
