@@ -146,14 +146,14 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
   }, [sessionId]);
 
   // 2. Submit Guess
-  const submitGuess = async (choiceHandleOverride?: string) => {
-    if (!state.session || inFlightRef.current || state.status !== "idle") return;
+  const submitGuess = async (retryPayload?: { answerText?: string; choiceHandle?: string }) => {
+    if (!state.session || inFlightRef.current || (state.status !== "idle" && !(state.status === "error" && state.error?.action === "guess"))) return;
 
     const round = state.session.active_round;
     if (round.state !== "guessing") return;
 
-    const choiceHandle = choiceHandleOverride ?? (state.selectedChoice ? state.selectedChoice.handle : undefined);
-    const answerText = choiceHandle ? undefined : state.typedGuess.trim();
+    const choiceHandle = retryPayload?.choiceHandle ?? state.selectedChoice?.handle;
+    const answerText = choiceHandle ? undefined : retryPayload?.answerText ?? state.typedGuess.trim();
 
     if (!choiceHandle && !answerText) return;
 
@@ -216,7 +216,7 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
 
   // 3. Request Hint
   const requestHint = async () => {
-    if (!state.session || inFlightRef.current || state.status !== "idle") return;
+    if (!state.session || inFlightRef.current || (state.status !== "idle" && !(state.status === "error" && state.error?.action === "hint"))) return;
 
     const round = state.session.active_round;
     if (round.state !== "guessing" || round.hint_stage >= 3) return;
@@ -275,7 +275,7 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
 
   // 4. Skip Round
   const skipRound = async () => {
-    if (!state.session || inFlightRef.current || state.status !== "idle") return;
+    if (!state.session || inFlightRef.current || (state.status !== "idle" && !(state.status === "error" && state.error?.action === "skip"))) return;
 
     const round = state.session.active_round;
     if (round.state !== "guessing") return;
@@ -334,7 +334,7 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
 
   // 5. Advance to Next Round
   const advanceNextRound = async () => {
-    if (!state.session || inFlightRef.current || state.status !== "idle") return;
+    if (!state.session || inFlightRef.current || (state.status !== "idle" && !(state.status === "error" && state.error?.action === "next"))) return;
 
     const round = state.session.active_round;
     if (round.state === "guessing") return;
@@ -400,13 +400,11 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
   const handleRetryAction = () => {
     if (!state.error || !state.error.action) return;
     const action = state.error.action;
-    dispatch({ type: "CLEAR_ERROR" });
-
     if (action === "load") {
       loadSession();
     } else if (action === "guess") {
       const payload = state.lastActionPayload;
-      submitGuess(payload?.choiceHandle);
+      submitGuess(payload?.type === "guess" ? payload : undefined);
     } else if (action === "hint") {
       requestHint();
     } else if (action === "skip") {
@@ -647,7 +645,7 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
                     <Button
                       key={choice.choiceHandle}
                       variant="secondary"
-                      onClick={() => submitGuess(choice.choiceHandle)}
+                       onClick={() => submitGuess({ choiceHandle: choice.choiceHandle })}
                       disabled={isMutating}
                       className="justify-between text-left text-sm"
                     >

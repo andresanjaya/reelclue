@@ -9,6 +9,7 @@ vi.mock("../../src/lib/server/game/session", () => ({
   fetchSafeSession: safeSession, hashToken: () => "hashed", PLAYER_COOKIE_NAME: "reelclue_player", GameError: class GameError extends Error { status = 404; },
 }));
 vi.mock("../../src/lib/server/db/client", () => ({ createDbClient: dbClient }));
+vi.mock("../../src/lib/server/security/rate-limit", () => ({ enforceRateLimits: vi.fn(), RATE_LIMIT_POLICIES: { poster: [] } }));
 vi.mock("../../src/lib/server/game/poster", () => ({ transformPoster: transform }));
 import { _resetRoundMetaCacheForTesting, GET } from "../../src/app/api/games/[id]/rounds/[roundId]/poster/route";
 

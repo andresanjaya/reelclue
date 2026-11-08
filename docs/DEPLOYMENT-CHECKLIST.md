@@ -40,7 +40,7 @@
 1. **Player identity**: POST `/api/player` returns 201 with cookie
 2. **Game creation**: POST `/api/games` with valid payload returns 201
 3. **Health check**: GET `/api/health` returns 200 with catalog count > 0
-4. **Rate limits**: Verify `consume_rate_limit` RPC works or gracefully falls back (RC-022 ponytail)
+4. **Rate limits**: Verify `consume_rate_limit` RPC works. Missing RPC returns 503; never bypass limits.
 
 ## Common Issues
 
@@ -49,7 +49,7 @@
 - Fix: Run `pnpm catalog:sync --apply` on deployment database
 
 ### 503 on all routes
-- Cause: `consume_rate_limit` RPC missing and fallback disabled
+- Cause: `consume_rate_limit` RPC missing
 - Fix: Apply RC-022 migration `202611040007_rate_limits.sql`
 
 ### 401 on protected routes

@@ -63,15 +63,14 @@ export function PlaySetup() {
 
   const submittingRef = useRef(false);
 
-  const playerInitPromiseRef = useRef<Promise<Response> | null>(null);
+  const playerInitPromiseRef = useRef<Promise<boolean> | null>(null);
 
   // Initialize anonymous player identity cookie on mount
   useEffect(() => {
-    if (!playerInitPromiseRef.current && typeof window !== "undefined") {
-      playerInitPromiseRef.current = fetch("/api/player", { method: "POST" }).catch(() => {
-        playerInitPromiseRef.current = null;
-        return null as unknown as Response;
-      });
+    if (!playerInitPromiseRef.current) {
+      playerInitPromiseRef.current = fetch("/api/player", { method: "POST" })
+        .then(res => res.ok)
+        .catch(() => false);
     }
   }, []);
 
@@ -86,10 +85,9 @@ export function PlaySetup() {
 
     try {
       // 1. Ensure player identity established without racing
-      if (playerInitPromiseRef.current) {
-        await playerInitPromiseRef.current.catch(() => {});
-      } else {
-        await fetch("/api/player", { method: "POST" });
+      const initialized = await playerInitPromiseRef.current;
+      if (!initialized && !(await fetch("/api/player", { method: "POST" })).ok) {
+        throw new Error("Player identity unavailable");
       }
 
       // 2. Fetch recent movie IDs to prefer excluding

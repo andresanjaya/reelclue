@@ -429,4 +429,34 @@ describe("GameplayShell Component", () => {
       );
     });
   });
+
+  it("clears action ID when dismissing failed action", () => {
+    const state = gameplayReducer({ ...initialGameplayState, status: "error", error: { code: "FAIL", message: "failed", retryable: true }, lastActionId: "previous-action", lastActionPayload: { type: "hint" } }, { type: "CLEAR_ERROR" });
+    expect(state.lastActionId).toBeNull();
+    expect(state.lastActionPayload).toBeNull();
+  });
+
+  it("retries exact guess payload and action ID after network failure", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => mockSession } as Response)
+      .mockRejectedValueOnce(new Error("connection lost"))
+      .mockResolvedValueOnce({
+        ok: true, status: 200,
+        json: async () => ({ outcome: "wrong", is_duplicate: false, points: 0, wrong_attempts: 1, session: {
+          ...mockSession, revision: 1, active_round: { ...mockActiveRound, wrong_attempts: 1 },
+        } }),
+      } as Response);
+
+    render(<GameplayShell sessionId="session-1" />);
+    const input = await screen.findByRole("combobox");
+    fireEvent.change(input, { target: { value: "Fictional wrong title" } });
+    fireEvent.click(screen.getByRole("button", { name: /Submit Guess/i }));
+    await screen.findByRole("button", { name: "Retry" });
+    fireEvent.change(input, { target: { value: "Changed text" } });
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    await waitFor(() => expect(screen.getByText("2 attempts left")).toBeInTheDocument());
+    const requests = fetchSpy.mock.calls.filter(([url]) => String(url).endsWith("/guess"));
+    expect(requests).toHaveLength(2);
+    expect(requests[1][1]?.body).toEqual(requests[0][1]?.body);
+  });
 });

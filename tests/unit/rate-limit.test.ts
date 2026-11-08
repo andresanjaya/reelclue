@@ -66,6 +66,13 @@ describe("rate limiting security module (RC-022)", () => {
   describe("consumeRateLimit", () => {
     const validHash = "a".repeat(64);
 
+    it("fails closed when DB client, RPC, or response is missing", async () => {
+      for (const client of [() => { throw new Error("unconfigured"); }, () => ({}), () => ({ rpc: vi.fn().mockResolvedValue({ data: null, error: null }) })]) {
+        dbClientMock.mockImplementation(client);
+        await expect(consumeRateLimit(validHash, "session_create", 10, 600)).rejects.toMatchObject({ status: 503, code: "SERVICE_UNAVAILABLE" });
+      }
+    });
+
     it("allows request when under configured limit", async () => {
       const rpcMock = vi.fn().mockResolvedValue({
         data: { allowed: true, count: 5, limit: 10 },
@@ -107,17 +114,17 @@ describe("rate limiting security module (RC-022)", () => {
       }
     });
 
-    it("falls back gracefully when RPC is not yet migrated in database (PGRST202)", async () => {
+    it("fails closed when rate-limit RPC has not been migrated (PGRST202)", async () => {
       const rpcMock = vi.fn().mockResolvedValue({
         data: null,
         error: { code: "PGRST202", message: "function not found" },
       });
       dbClientMock.mockReturnValue({ rpc: rpcMock });
 
-      const result = await consumeRateLimit(validHash, "session_create", 10, 600);
-      expect(result.allowed).toBe(true);
-      expect(result.count).toBe(1);
-      expect(result.retryAfter).toBeGreaterThan(0);
+      await expect(consumeRateLimit(validHash, "session_create", 10, 600)).rejects.toMatchObject({
+        status: 503,
+        code: "SERVICE_UNAVAILABLE",
+      });
     });
 
     it("throws 503 SERVICE_UNAVAILABLE when database RPC encounters error", async () => {

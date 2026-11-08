@@ -122,6 +122,20 @@ describe("PlaySetup component", () => {
     });
   });
 
+  it("waits for initial player cookie before creating game", async () => {
+    let resolvePlayer!: (response: Response) => void;
+    const playerPromise = new Promise<Response>(resolve => { resolvePlayer = resolve; });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async url => {
+      if (String(url).includes("/api/player")) return playerPromise;
+      return { ok: true, json: async () => ({ id: "new-session-123" }) } as Response;
+    });
+    render(<PlaySetup />);
+    fireEvent.click(screen.getByRole("button", { name: /Start Game/ }));
+    expect(fetchSpy.mock.calls.filter(([url]) => String(url).includes("/api/games"))).toHaveLength(0);
+    resolvePlayer({ ok: true } as Response);
+    await waitFor(() => expect(fetchSpy.mock.calls.filter(([url]) => String(url).includes("/api/games"))).toHaveLength(1));
+  });
+
   it("handles catalog shortage without changing player's mode and difficulty selections", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async (url: RequestInfo | URL) => {
       const urlStr = String(url);
