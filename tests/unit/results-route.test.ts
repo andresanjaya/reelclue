@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+vi.mock("../../src/lib/server/security/rate-limit", () => ({ enforceRateLimits: vi.fn(), RATE_LIMIT_POLICIES: { results: [] } }));
 
 const { fetchResultsMock } = vi.hoisted(() => ({
   fetchResultsMock: vi.fn(),

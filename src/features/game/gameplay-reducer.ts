@@ -303,6 +303,8 @@ export function gameplayReducer(
         ...state,
         status: state.session?.state === "completed" ? "completed" : "idle",
         error: null,
+        lastActionId: null,
+        lastActionPayload: null,
       };
 
     case "STALE_RELOAD":

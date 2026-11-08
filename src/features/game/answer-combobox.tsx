@@ -93,7 +93,7 @@ export function AnswerCombobox({ value, onValueChange, onSelect, options, loadin
     <p id={`${id}-status`} role="status" className="text-sm text-muted-foreground">
       {error || (loading ? "Searching titles…" : visible ? choices.length ? `${choices.length} suggestions. Use arrow keys to choose.` : "No suggestions. You can still type an answer." : "")}
     </p>
-    <ul id={`${id}-list`} role="listbox" aria-label="Movie suggestions" hidden={!visible} aria-busy={loading}
+    <ul id={`${id}-list`} role="listbox" aria-label="Movie suggestions" hidden={!visible || choices.length === 0} aria-busy={loading}
       className="max-h-60 overflow-y-auto rounded-md border border-input bg-popover text-popover-foreground">
       {choices.map((choice, i) => <li key={choice.handle} id={`${id}-option-${i}`} role="option" aria-selected={index === i}
         onPointerDown={event => event.preventDefault()} onClick={() => select(choice)}

@@ -96,13 +96,11 @@ export async function consumeRateLimit(
   try {
     db = createDbClient();
   } catch {
-    // ponytail: unconfigured database in isolated unit tests bypasses rate limiting
-    return { allowed: true, count: 1, retryAfter };
+    throw new GameError(503, "SERVICE_UNAVAILABLE", "Rate limiting service temporarily unavailable", true, 5);
   }
 
-  // ponytail: in mock unit tests without rpc, bypass rate limiting
   if (typeof (db as { rpc?: unknown }).rpc !== "function") {
-    return { allowed: true, count: 1, retryAfter };
+    throw new GameError(503, "SERVICE_UNAVAILABLE", "Rate limiting service temporarily unavailable", true, 5);
   }
 
   const { data, error } = await db.rpc("consume_rate_limit", {
@@ -118,8 +116,11 @@ export async function consumeRateLimit(
     throw new GameError(503, "SERVICE_UNAVAILABLE", "Rate limiting service temporarily unavailable", true, 5);
   }
 
-  const allowed = Boolean(data?.allowed ?? true);
-  const count = Number(data?.count ?? 1);
+  if (typeof data?.allowed !== "boolean" || !Number.isFinite(data.count)) {
+    throw new GameError(503, "SERVICE_UNAVAILABLE", "Rate limiting service temporarily unavailable", true, 5);
+  }
+  const allowed = data.allowed;
+  const count = Number(data.count);
 
   if (!allowed) {
     throw new GameError(
