@@ -16,6 +16,7 @@ import {
   CatalogShortageError,
   selectGameRounds,
   type PoolCandidate,
+  type SelectedRound,
   type SessionLevel,
   type SessionMode,
 } from "./selection.ts";
@@ -151,72 +152,80 @@ export async function createGameSession(opts: {
   mode: SessionMode;
   level: SessionLevel;
   recentMovieIds?: number[];
+  preselectedRounds?: SelectedRound[];
 }): Promise<SafeSessionDto> {
   const db = createDbClient();
   const playerTokenHash = hashToken(opts.playerToken);
-  const requestHash = hashPayload({ mode: opts.mode, level: opts.level });
+  const requestHash = hashPayload({
+    mode: opts.mode,
+    level: opts.level,
+    ...(opts.preselectedRounds ? { rounds: opts.preselectedRounds.map(r => r.movie_id) } : {}),
+  });
 
-  // 1. Get active catalog
-  const { data: catalog, error: catError } = await db
-    .from("catalog_versions")
-    .select("id")
-    .eq("status", "active")
-    .order("imported_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  let selectedRounds = opts.preselectedRounds;
 
-  if (catError || !catalog) {
-    throw new GameError(503, "CATALOG_UNAVAILABLE", "Active catalog unavailable", true);
-  }
-
-  // 2. Query candidates for pool
-  const { data: candidates, error: candError } = await db
-    .from("movies")
-    .select("tmdb_id, tier, eligible_modes")
-    .eq("catalog_version_id", catalog.id)
-    .eq("tier", opts.level);
-
-  if (candError || !candidates) {
-    throw new GameError(500, "CATALOG_QUERY_FAILED", "Failed to query catalog");
-  }
-
-  const pool: PoolCandidate[] = candidates.map(c => ({
-    tmdb_id: c.tmdb_id,
-    tier: c.tier,
-    eligible_modes: c.eligible_modes,
-  }));
-
-  // 3. Select 10 rounds
-  let recentMovieIds = opts.recentMovieIds;
-  if (!recentMovieIds) {
-    const { data: player } = await db
-      .from("anonymous_players")
+  if (!selectedRounds) {
+    // 1. Get active catalog
+    const { data: catalog, error: catError } = await db
+      .from("catalog_versions")
       .select("id")
-      .eq("token_hash", playerTokenHash)
+      .eq("status", "active")
+      .order("imported_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
-    if (player) {
-      const { data: recentRounds } = await db
-        .from("game_rounds")
-        .select("movie_id, game_sessions!inner(player_id, created_at)")
-        .eq("game_sessions.player_id", player.id)
-        .order("game_sessions(created_at)", { ascending: false })
-        .limit(30);
+    if (catError || !catalog) {
+      throw new GameError(503, "CATALOG_UNAVAILABLE", "Active catalog unavailable", true);
+    }
 
-      if (recentRounds) {
-        recentMovieIds = recentRounds.map((r: { movie_id: number }) => r.movie_id);
+    // 2. Query candidates for pool
+    const { data: candidates, error: candError } = await db
+      .from("movies")
+      .select("tmdb_id, tier, eligible_modes")
+      .eq("catalog_version_id", catalog.id)
+      .eq("tier", opts.level);
+
+    if (candError || !candidates) {
+      throw new GameError(500, "CATALOG_QUERY_FAILED", "Failed to query catalog");
+    }
+
+    const pool: PoolCandidate[] = candidates.map(c => ({
+      tmdb_id: c.tmdb_id,
+      tier: c.tier,
+      eligible_modes: c.eligible_modes,
+    }));
+
+    // 3. Select 10 rounds
+    let recentMovieIds = opts.recentMovieIds;
+    if (!recentMovieIds) {
+      const { data: player } = await db
+        .from("anonymous_players")
+        .select("id")
+        .eq("token_hash", playerTokenHash)
+        .maybeSingle();
+
+      if (player) {
+        const { data: recentRounds } = await db
+          .from("game_rounds")
+          .select("movie_id, game_sessions!inner(player_id, created_at)")
+          .eq("game_sessions.player_id", player.id)
+          .order("game_sessions(created_at)", { ascending: false })
+          .limit(30);
+
+        if (recentRounds) {
+          recentMovieIds = recentRounds.map((r: { movie_id: number }) => r.movie_id);
+        }
       }
     }
-  }
 
-  let selectedRounds;
-  try {
-    selectedRounds = selectGameRounds(pool, opts.mode, recentMovieIds ?? []);
-  } catch (err) {
-    if (err instanceof CatalogShortageError) {
-      throw new GameError(400, "CATALOG_SHORTAGE", err.message);
+    try {
+      selectedRounds = selectGameRounds(pool, opts.mode, recentMovieIds ?? []);
+    } catch (err) {
+      if (err instanceof CatalogShortageError) {
+        throw new GameError(400, "CATALOG_SHORTAGE", err.message);
+      }
+      throw err;
     }
-    throw err;
   }
 
   // 4. Call RPC create_game_session
