@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { createDbClient } from "@/lib/server/db/client";
 import {
   fetchGameResults,
   GameError,
@@ -97,5 +98,25 @@ export default async function ResultsPage(props: {
     );
   }
 
-  return <ResultsView results={results!} />;
+  let isDaily = false;
+  let dailyDate: string | undefined = undefined;
+  if (results) {
+    try {
+      const db = createDbClient();
+      const { data: attempt } = await db
+        .from("daily_challenge_attempts")
+        .select("challenge_date")
+        .eq("session_id", id)
+        .maybeSingle();
+
+      if (attempt) {
+        isDaily = true;
+        dailyDate = attempt.challenge_date;
+      }
+    } catch {
+      // Non-blocking metadata lookup
+    }
+  }
+
+  return <ResultsView results={results!} isDaily={isDaily} dailyDate={dailyDate} />;
 }
