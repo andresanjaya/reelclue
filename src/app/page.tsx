@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BarChart3, Film, HelpCircle, Lightbulb, Play, Trophy } from "lucide-react";
+import { BarChart3, Calendar, Film, HelpCircle, Lightbulb, Play, Sparkles, Trophy } from "lucide-react";
 import { modes } from "@/features/game/components";
 
 export const metadata: Metadata = {
@@ -49,6 +49,13 @@ export default function Home() {
             <span>ReelClue</span>
           </Link>
           <div className="flex items-center gap-2">
+            <Link
+              href="/daily"
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+            >
+              <Calendar aria-hidden="true" className="size-4 text-primary" />
+              <span>Daily</span>
+            </Link>
             <Link
               href="/about"
               className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
@@ -102,6 +109,33 @@ export default function Home() {
             >
               How to Play
             </a>
+          </div>
+        </section>
+
+        {/* Daily Challenge Spotlight */}
+        <section aria-labelledby="daily-spotlight-heading" className="rounded-xl border border-primary/40 bg-card p-6 sm:p-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2 max-w-xl">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                <Sparkles aria-hidden="true" className="size-3.5" />
+                <span>Today&apos;s Challenge</span>
+              </div>
+              <h2 id="daily-spotlight-heading" className="text-2xl font-bold tracking-tight text-foreground">
+                The Daily Puzzle
+              </h2>
+              <p className="text-muted-foreground leading-relaxed">
+                Ten mixed rounds. One shared challenge each day for cinema fans everywhere. Play your official attempt or practice anytime.
+              </p>
+            </div>
+            <div className="shrink-0">
+              <Link
+                href="/daily"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+              >
+                <Calendar aria-hidden="true" className="size-5" />
+                <span>Play Daily Challenge</span>
+              </Link>
+            </div>
           </div>
         </section>
 
