@@ -18,7 +18,8 @@
     "test:db": "node scripts/test-db.mjs",
     "db:purge": "node --experimental-strip-types --conditions=react-server --env-file-if-exists=.env.local scripts/purge-expired.ts",
     "catalog:sync": "node --experimental-strip-types --conditions=react-server --env-file-if-exists=.env.local scripts/catalog-sync.ts",
-    "verify:deployment": "node --experimental-strip-types --conditions=react-server --env-file-if-exists=.env.local scripts/verify-deployment.ts"
+    "verify:deployment": "node --experimental-strip-types --conditions=react-server --env-file-if-exists=.env.local scripts/verify-deployment.ts",
+    "pwa:icons": "node --experimental-strip-types scripts/generate-pwa-icons.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.118.0",
