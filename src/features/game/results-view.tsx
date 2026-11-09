@@ -1,32 +1,98 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
   ArrowRight,
   BarChart3,
+  Check,
   CheckCircle2,
   Clock,
+  Copy,
   ExternalLink,
   Film,
   HelpCircle,
   RotateCcw,
+  Share2,
   Trophy,
   XCircle,
 } from "lucide-react";
 import type { GameResultsDto } from "@/lib/server/game/dto";
 import { recordCompletedSession } from "@/lib/client/storage";
+import {
+  executeShare,
+  generateSpoilerFreeSharePayload,
+  getRoundOutcomeText,
+  type ShareRoundSummary,
+} from "@/lib/client/sharing";
 import { modes, type Level } from "./components";
 
-export function ResultsView({ results }: { results: GameResultsDto }) {
+export function ResultsView({
+  results,
+  isDaily,
+  dailyDate,
+}: {
+  results: GameResultsDto;
+  isDaily?: boolean;
+  dailyDate?: string;
+}) {
   const modeObj = modes.find(m => m.id === results.mode);
-  const modeLabel = modeObj?.label ?? results.mode;
+  const modeLabel = isDaily ? "Daily Challenge" : modeObj?.label ?? results.mode;
   const levelLabel = (results.level.charAt(0).toUpperCase() + results.level.slice(1)) as Level;
+
+  const [shareStatus, setShareStatus] = useState<"idle" | "sharing" | "copied" | "shared" | "cancelled" | "error">("idle");
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
+  const [manualShareText, setManualShareText] = useState<string | null>(null);
 
   useEffect(() => {
     recordCompletedSession(results);
   }, [results]);
+
+  const shareRounds: ShareRoundSummary[] = results.rounds.map(r => ({
+    ordinal: r.ordinal,
+    outcome: r.reveal.outcome,
+    hintsUsed: r.reveal.hints_used,
+    wrongAttempts: r.reveal.wrong_attempts,
+  }));
+
+  const handleShare = async () => {
+    setShareStatus("sharing");
+    setShareFeedback(null);
+    setManualShareText(null);
+
+    const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+
+    const payload = generateSpoilerFreeSharePayload({
+      mode: results.mode,
+      level: results.level,
+      score: results.score,
+      maxScore: results.max_score,
+      correctCount: results.correct_count,
+      totalRounds: results.total_rounds,
+      rounds: shareRounds,
+      origin,
+      isDaily,
+      dailyDate,
+    });
+
+    const res = await executeShare(payload);
+
+    if (res.type === "copied") {
+      setShareStatus("copied");
+      setShareFeedback("Results copied to clipboard (spoiler-free)!");
+    } else if (res.type === "shared") {
+      setShareStatus("shared");
+      setShareFeedback("Results shared successfully!");
+    } else if (res.type === "cancelled") {
+      setShareStatus("cancelled");
+      setShareFeedback("Share cancelled.");
+    } else {
+      setShareStatus("error");
+      setShareFeedback(res.message);
+      setManualShareText(payload.fullMessage);
+    }
+  };
 
   return (
     <main className="mx-auto max-w-3xl space-y-8 px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
@@ -109,11 +175,118 @@ export function ResultsView({ results }: { results: GameResultsDto }) {
           </div>
         </div>
 
+        {/* Outcome Grid */}
+        <div
+          role="region"
+          aria-label="Round outcome grid"
+          className="mx-auto max-w-md rounded-xl border border-border/50 bg-secondary/20 p-4 space-y-2 text-left"
+        >
+          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
+            <span>Round Outcome Grid</span>
+            <span>{results.correct_count} of {results.total_rounds} Solved</span>
+          </div>
+          <div
+            className="grid grid-cols-5 gap-2 sm:grid-cols-10"
+            role="list"
+            aria-label={`10 rounds outcome summary: ${results.correct_count} solved`}
+          >
+            {shareRounds.map(r => {
+              const isCorrectClean = r.outcome === "correct" && r.hintsUsed === 0 && r.wrongAttempts === 0;
+              const isCorrectAssisted = r.outcome === "correct" && !isCorrectClean;
+              const isExhausted = r.outcome === "exhausted";
+              const label = getRoundOutcomeText(r);
+
+              return (
+                <div
+                  key={r.ordinal}
+                  role="listitem"
+                  title={label}
+                  aria-label={label}
+                  className={`flex flex-col items-center justify-center rounded-lg border p-1.5 text-xs font-bold transition-colors ${
+                    isCorrectClean
+                      ? "border-success/50 bg-success/20 text-success"
+                      : isCorrectAssisted
+                        ? "border-primary/50 bg-primary/20 text-primary"
+                        : isExhausted
+                          ? "border-destructive/50 bg-destructive/20 text-destructive"
+                          : "border-border bg-muted text-muted-foreground"
+                  }`}
+                >
+                  <span className="text-[10px] opacity-75">R{r.ordinal}</span>
+                  <span className="text-base" aria-hidden="true">
+                    {isCorrectClean ? "🟩" : isCorrectAssisted ? "🟨" : isExhausted ? "🟥" : "⬜"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="sr-only">
+            {shareRounds.map(getRoundOutcomeText).join(". ")}
+          </p>
+        </div>
+
+        {/* Feedback / Copy Fallback */}
+        {shareFeedback && (
+          <div
+            role="status"
+            aria-live="polite"
+            className={`mx-auto max-w-md rounded-lg border p-3 text-sm font-medium ${
+              shareStatus === "error"
+                ? "border-destructive/40 bg-destructive/10 text-destructive"
+                : "border-primary/40 bg-primary/10 text-primary"
+            }`}
+          >
+            <p>{shareFeedback}</p>
+            {manualShareText && (
+              <div className="mt-3 space-y-2 text-left">
+                <textarea
+                  readOnly
+                  value={manualShareText}
+                  className="w-full rounded-md border border-border bg-background p-2 font-mono text-xs text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  rows={8}
+                  aria-label="Shareable results text"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(manualShareText);
+                    setShareFeedback("Copied to clipboard!");
+                  }}
+                  className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  <Copy aria-hidden="true" className="size-3.5" />
+                  <span>Copy Text</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Action CTAs */}
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <button
+            type="button"
+            onClick={handleShare}
+            aria-label="Share results (spoiler-free)"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+          >
+            {shareStatus === "copied" ? (
+              <Check aria-hidden="true" className="size-4" />
+            ) : (
+              <Share2 aria-hidden="true" className="size-4" />
+            )}
+            <span>
+              {shareStatus === "copied"
+                ? "Copied to Clipboard!"
+                : shareStatus === "sharing"
+                  ? "Sharing..."
+                  : "Share Results"}
+            </span>
+          </button>
+
           <Link
             href={`/play?mode=${results.mode}&difficulty=${results.level}`}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-input bg-secondary px-5 py-3 font-semibold text-secondary-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
           >
             <RotateCcw aria-hidden="true" className="size-4" />
             <span>Play Again</span>
