@@ -10,6 +10,28 @@ const SIGMAS = [24, 16, 8, 8] as const;
 export function _resetPosterCacheForTesting(): void {
   cache.clear();
   rawCache.clear();
+  roundMetaCache.clear();
+}
+
+export type RoundPosterMeta = {
+  movie_id: number;
+  poster_path: string;
+  source_revision: string;
+};
+
+const roundMetaCache = new Map<string, RoundPosterMeta>();
+
+export function getCachedRoundMeta(roundId: string): RoundPosterMeta | undefined {
+  return roundMetaCache.get(roundId);
+}
+
+export function setCachedRoundMeta(roundId: string, meta: RoundPosterMeta): void {
+  if (roundMetaCache.size >= 256) roundMetaCache.delete(roundMetaCache.keys().next().value!);
+  roundMetaCache.set(roundId, meta);
+}
+
+export function _resetRoundMetaCacheForTesting(): void {
+  roundMetaCache.clear();
 }
 
 async function blurAndExtract(rawBuffer: Buffer, sigma: number): Promise<Buffer> {

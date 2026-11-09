@@ -1,24 +1,12 @@
 import { createDbClient } from "@/lib/server/db/client";
 import { fetchSafeSession, GameError, hashToken, PLAYER_COOKIE_NAME } from "@/lib/server/game/session";
-import { transformPoster } from "@/lib/server/game/poster";
+import { getCachedRoundMeta, setCachedRoundMeta, transformPoster } from "@/lib/server/game/poster";
 import { enforceRateLimits, RATE_LIMIT_POLICIES } from "@/lib/server/security/rate-limit";
 import { generateRequestId, logTelemetry } from "@/lib/server/security/telemetry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
-
-type RoundPosterMeta = {
-  movie_id: number;
-  poster_path: string;
-  source_revision: string;
-};
-
-const roundMetaCache = new Map<string, RoundPosterMeta>();
-
-export function _resetRoundMetaCacheForTesting(): void {
-  roundMetaCache.clear();
-}
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string; roundId: string }> }) {
   const start = Date.now();
@@ -40,7 +28,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     await enforceRateLimits(request, RATE_LIMIT_POLICIES.poster, token);
 
-    let meta = roundMetaCache.get(roundId);
+    let meta = getCachedRoundMeta(roundId);
     if (!meta) {
       const db = createDbClient();
       const { data: roundData, error: roundError } = await db.from("game_rounds")
@@ -62,8 +50,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         poster_path: movie.poster_path,
         source_revision: movie.source_revision,
       };
-      if (roundMetaCache.size >= 128) roundMetaCache.delete(roundMetaCache.keys().next().value!);
-      roundMetaCache.set(roundId, meta);
+      setCachedRoundMeta(roundId, meta);
     }
 
     const bytes = await transformPoster(meta.poster_path, meta.source_revision, meta.movie_id, stage);

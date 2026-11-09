@@ -10,8 +10,17 @@ vi.mock("../../src/lib/server/game/session", () => ({
 }));
 vi.mock("../../src/lib/server/db/client", () => ({ createDbClient: dbClient }));
 vi.mock("../../src/lib/server/security/rate-limit", () => ({ enforceRateLimits: vi.fn(), RATE_LIMIT_POLICIES: { poster: [] } }));
-vi.mock("../../src/lib/server/game/poster", () => ({ transformPoster: transform }));
-import { _resetRoundMetaCacheForTesting, GET } from "../../src/app/api/games/[id]/rounds/[roundId]/poster/route";
+
+const roundMetaCache = new Map<string, unknown>();
+vi.mock("../../src/lib/server/game/poster", () => ({
+  transformPoster: transform,
+  getCachedRoundMeta: vi.fn((id: string) => roundMetaCache.get(id)),
+  setCachedRoundMeta: vi.fn((id: string, meta: unknown) => roundMetaCache.set(id, meta)),
+  _resetRoundMetaCacheForTesting: vi.fn(() => roundMetaCache.clear()),
+}));
+
+import { GET } from "../../src/app/api/games/[id]/rounds/[roundId]/poster/route";
+import { _resetRoundMetaCacheForTesting } from "../../src/lib/server/game/poster";
 
 const route = (stage = "0", cookie = "reelclue_player=token", roundId = "round") => GET(
   new Request(`http://localhost/api/games/session/rounds/${roundId}/poster?stage=${stage}`, { headers: { cookie } }),
