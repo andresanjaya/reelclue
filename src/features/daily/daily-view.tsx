@@ -108,6 +108,12 @@ export function DailyView() {
 
   const handleStart = async (isPractice = false) => {
     if (submittingRef.current) return;
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setError("You appear to be offline. Please connect to the internet to play the Daily Challenge.");
+      return;
+    }
+
     submittingRef.current = true;
     setSubmitting(true);
     setError(null);

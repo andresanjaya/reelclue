@@ -125,7 +125,7 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
     loadSession();
   }, [loadSession]);
 
-  // Re-sync session helper for 409 revision mismatches
+  // Re-sync session helper for 409 revision mismatches and reconnect resumption
   const resyncSession = useCallback(async () => {
     try {
       const res = await fetch(`/api/games/${sessionId}`, {
@@ -145,6 +145,17 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
     }
   }, [sessionId]);
 
+  // Reconnect automatically resumes authoritative session state from server
+  useEffect(() => {
+    const handleOnline = () => {
+      void resyncSession();
+    };
+    window.addEventListener("online", handleOnline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [resyncSession]);
+
   // 2. Submit Guess
   const submitGuess = async (retryPayload?: { answerText?: string; choiceHandle?: string }) => {
     if (!state.session || inFlightRef.current || (state.status !== "idle" && !(state.status === "error" && state.error?.action === "guess"))) return;
@@ -156,6 +167,18 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
     const answerText = choiceHandle ? undefined : retryPayload?.answerText ?? state.typedGuess.trim();
 
     if (!choiceHandle && !answerText) return;
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      dispatch({
+        type: "GUESS_ERROR",
+        error: {
+          code: "NETWORK_OFFLINE",
+          message: "You appear to be offline. Reconnect to the internet to submit your guess.",
+          retryable: true,
+        },
+      });
+      return;
+    }
 
     inFlightRef.current = true;
     const actionId = state.lastActionId ?? crypto.randomUUID();
@@ -221,6 +244,18 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
     const round = state.session.active_round;
     if (round.state !== "guessing" || round.hint_stage >= 3) return;
 
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      dispatch({
+        type: "HINT_ERROR",
+        error: {
+          code: "NETWORK_OFFLINE",
+          message: "You appear to be offline. Reconnect to the internet to request a hint.",
+          retryable: true,
+        },
+      });
+      return;
+    }
+
     inFlightRef.current = true;
     const actionId = state.lastActionId ?? crypto.randomUUID();
 
@@ -280,6 +315,18 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
     const round = state.session.active_round;
     if (round.state !== "guessing") return;
 
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      dispatch({
+        type: "SKIP_ERROR",
+        error: {
+          code: "NETWORK_OFFLINE",
+          message: "You appear to be offline. Reconnect to the internet to skip.",
+          retryable: true,
+        },
+      });
+      return;
+    }
+
     inFlightRef.current = true;
     const actionId = state.lastActionId ?? crypto.randomUUID();
 
@@ -338,6 +385,18 @@ export function GameplayShell({ sessionId }: { sessionId: string }) {
 
     const round = state.session.active_round;
     if (round.state === "guessing") return;
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      dispatch({
+        type: "NEXT_ERROR",
+        error: {
+          code: "NETWORK_OFFLINE",
+          message: "You appear to be offline. Reconnect to the internet to advance.",
+          retryable: true,
+        },
+      });
+      return;
+    }
 
     inFlightRef.current = true;
     const actionId = state.lastActionId ?? crypto.randomUUID();
